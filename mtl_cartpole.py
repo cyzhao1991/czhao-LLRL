@@ -38,6 +38,7 @@ action_high_bound = env_list[0].action_space.high
 
 num_of_task = len(env_list)
 ## Building network
+print('Building Network')
 context_input = [tf.placeholder(tf.float32, [None, context_dim], name = 'context_input%i'%(i)) for i in range(num_of_task)]
 action_input = [tf.placeholder(tf.float32, [None, output_dim], name = 'action_input%i'%(i)) for i in range(num_of_task)]
 pre_defined_context = [tf.concat([u,v], axis = 1) for u,v in zip(context_input, action_input)]
@@ -58,6 +59,7 @@ s_critic_list = [mykb.PathPolicy(input_dim, 1, knowledge_base = L_critic, name =
 rb_list = [ReplayBuffer() for i in range(num_of_task)]
 on_list = [OUNoise(output_dim) for i in range(num_of_task)]
 ## Defining variables
+print('Defining Variables')
 input_placeholders_actor = [v.input for v in s_actor_list]
 context_placeholders_actor = [v.context for v in s_actor_list]
 input_placeholders_critic = [v.input for v in s_critic_list]
@@ -81,6 +83,7 @@ s_critic_var_list_per_task = [pp.variable_list() for pp in s_critic_list]
 s_critic_target_var_list_per_task = [pp.target_variable_list() for pp in s_critic_list]
 
 ## Calculating the loss and gradients
+print('Calculating the loss and gradients')
 training_q_list = [tf.placeholder(tf.float32, [None, 1], name = 'training_q_task%i'%(i)) for i in range(num_of_task)]
 mse_loss_list = [tf.losses.mean_squared_error(tq, q) for tq, q in zip(training_q_list, q_list)]
 l2_loss_list = [ALPHA_L2 * tf.add_n([tf.nn.l2_loss(v) for v in v_list]) for v_list in KB_critic_var_list_per_latent]
@@ -98,6 +101,7 @@ KB_actor_gradient = [actor_optimizer.compute_gradients(a, var_list = KB_actor_va
 KB_actor_gradient = [( tf.add_n([KB_actor_gradient[j][i][0] for j in range(len(KB_actor_gradient))]),KB_actor_gradient[0][i][1]) for i in range(len(KB_actor_gradient[0]))]
 s_actor_gradient_list = [actor_optimizer.compute_gradients(a, var_list = s_var_list, grad_loss = -g) for a,s_var_list,g in zip(action_list, s_actor_var_list_per_task,inter_grads)]
 # Applying gradients and updating network
+print('Applying gradients and updating network')
 KB_critic_train_op = critic_optimizer.apply_gradients( KB_critic_gradient )
 KB_critic_update_op = [target_param.assign( tf.multiply(target_param, 1.-TAU_CRITIC) + tf.multiply(network_param, TAU_CRITIC)) \
 	for target_param, network_param in zip(KB_critic_target_var_list, KB_critic_var_list)]
@@ -169,6 +173,10 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		reward_list_tmp.append(reward_list_ttmp)
 		done_list_tmp.append(done_list_ttmp)
 
+	reward_list.append(reward_list_tmp)
+	done_list.append(done_list_tmp)
+	print('iter_count: %i, avg_reward: %3.2f'%(iter_count, 1.*np.mean(reward_list_tmp) ))
+	
 	if rb_list[0].count <= INITIALIZE_REPLAY_BUFFER:
 		continue
 	KB_update_count = 0
@@ -194,9 +202,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		sess.run([KB_critic_update_op, KB_actor_update_op])
 		KB_update_count += 1
 
-	reward_list.append(reward_list_tmp)
-	done_list.append(done_list_tmp)
-	print('iter_count: %i, avg_reward: %3.2f'%(iter_count, 1.*np.mean(reward_list_tmp) ))
+	
 		# print('KB update count%i'%(KB_update_count))
 	# [feeding_dict.update({critic.target_input: mini_batch[3]})]
 	# a2_batches = sess.run([])
