@@ -37,7 +37,7 @@ output_dim = env_list[0].action_space.shape[0]
 action_low_bound = env_list[0].action_space.low
 action_high_bound = env_list[0].action_space.high
 
-num_of_task = len(env_list)
+num_of_task = len(env_list) 
 ## Building network
 print('Building Network')
 context_input = [tf.placeholder(tf.float32, [ None, context_dim], name = 'context_input%i'%(i)) for i in range(num_of_task)]
