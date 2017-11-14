@@ -212,7 +212,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		# env.render(close = True)
 
 # pdb.set_trace()
-filename = '/disk/scratch/chenyang/transfer/Data/mtl_cartpole/exp_mtl'
+filename = '/disk/scratch/chenyang/Data/mtl_cartpole/exp_mtl'
 my_shelf = shelve.open(filename,'n')
 saving_var_list = ['reward_list', 'done_list', 's_actor_list', 's_critic_list']
 for key in saving_var_list:
