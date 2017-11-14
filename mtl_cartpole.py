@@ -21,11 +21,12 @@ MAX_TIME = 200
 BATCH_SIZE = 32
 MAX_ITER = 100000
 GAMMA = 0.99
+NUM_OF_TASK = 10
 
-m_cart_list = np.random.rand(20) * 4.5 + 0.5
-m_pole_list = np.random.rand(20) * 0.9 + 0.1
-l_pole_list = np.random.rand(20) * 1.0 + 0.5
-g_bool_list = np.random.randint(2, size = 20)
+m_cart_list = np.random.rand(NUM_OF_TASK) * 4.5 + 0.5
+m_pole_list = np.random.rand(NUM_OF_TASK) * 0.9 + 0.1
+l_pole_list = np.random.rand(NUM_OF_TASK) * 1.0 + 0.5
+g_bool_list = np.random.randint(2, size = NUM_OF_TASK)
 g_doub_list = g_bool_list * 9.81
 
 gen_env_list = [(CartPoleEnv(g, mc, mp, size_pole = (lp, .1)), np.array([mc, mp, lp, g/9.81]))for mc, mp, lp, g in zip(m_cart_list, m_pole_list, l_pole_list, g_doub_list)]
