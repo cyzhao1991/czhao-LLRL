@@ -170,7 +170,7 @@ class CartPoleEnv(gym.Env):
 		return costs
 
 	def if_done(self, state):
-		return False
+		return np.abs(state[0]) < 0.1 and np.abs(state[3]) < 30 * np.pi/180 
 
 def angle_normalize(x):
 	return (((x+np.pi)%(2*np.pi)) - np.pi)

@@ -9,7 +9,7 @@ from utils.replay_buffer import ReplayBuffer
 from utils.ounoise import OUNoise
 
 LAYER_SHAPE = [300,300]
-NUM_OF_LATENT = 3
+NUM_OF_LATENT = 1
 LEARNING_RATE_ACTOR = 0.0001
 LEARNING_RATE_CRITIC = 0.001
 ALPHA_L2 = 0.01
@@ -51,7 +51,7 @@ pre_defined_context = [tf.concat([u,v], axis = 1) for u,v in zip(context_input, 
 L_actor = mykb.KnowledgeBase(LAYER_SHAPE, NUM_OF_LATENT, name = 'cartpole_KB_actor')
 L_critic = mykb.KnowledgeBase(LAYER_SHAPE, NUM_OF_LATENT, name = 'cartpole_KB_critic')
 s_actor_list = [mykb.PathPolicy(input_dim, output_dim, knowledge_base = L_actor, name = 'cartpole_s_actor_task%i'%(i), \
-	allow_context = True, context_dim = context_dim, context_layer = 0) for i in range(num_of_task)]
+	allow_context = True, context_dim = context_dim, context_layer = 0, final_layer_act_function = 'tanh') for i in range(num_of_task)]
 ## critic takes input action along with context
 s_critic_list = [mykb.PathPolicy(input_dim, 1, knowledge_base = L_critic, name = 'cartpole_s_critic_task%i'%(i), \
 	allow_context = True, context_dim = output_dim + context_dim, context_layer = 0, pre_defined_context = pre_defined_context[i]) for i in range(num_of_task)]
@@ -120,26 +120,37 @@ task_listing = zip(env_list, context_list, s_actor_list, s_critic_list, rb_list,
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 
-iter_count = 0
-for _ in range(MAX_ITER/MAX_TIME):
-
-	reward_list = []
-	loss_list = []
-
+## reward_list/done_list: num_Iter x num_tasks x time_step
+## s_list: num_Iter x num_tasks x time_step x s_size
+reward_list = []
+done_list = []
+s_actor_list = []
+s_critic_list = []
+for iter_count in range(MAX_ITER/MAX_TIME):
+	reward_list_tmp = []
+	done_list_tmp = []
+	s_actor_list_tmp = []
+	s_critic_list_tmp = []
 	for env, context, actor, critic, rb, noise, i in task_listing:
 
 		state = env.reset()
 		noise.reset()
-		# reward_list = []
-		# loss_list = []
+		reward_list_ttmp = []
+		done_list_ttmp = []
+		s_list_ttmp = []
 		s_update_count = 0
+
 		for _ in range(MAX_TIME):
 			action = sess.run(actor.output ,feed_dict = {actor.input: state[np.newaxis,:], actor.context: context[np.newaxis,:]} )
 			action += noise.noise()
 			action = np.clip(action, action_low_bound, action_high_bound)
 			next_state, reward, done, _ = env.step(action)
 			rb.add_sample(state, action[0], reward, next_state, context)
-
+			# print(action[0])
+			reward_list_ttmp.append(reward)
+			done_list_ttmp.append(done)
+			s_actor_list_ttmp.append(sess.run(s_actor_var_list_per_task[i]))
+			s_critic_list_ttmp.append(sess.run(s_critic_var_list_per_task[i]))
 			if rb.count < INITIALIZE_REPLAY_BUFFER:
 				continue
 
@@ -153,7 +164,9 @@ for _ in range(MAX_ITER/MAX_TIME):
 			sess.run(s_critic_train_op_list[i], feed_dict = {critic.input: s_batch, context_input[i]: c_batch, action_input[i]: a_batch, training_q_list[i]: training_q_batch})
 			sess.run([s_critic_update_op_list[i],s_actor_update_op_list[i]])
 			s_update_count+=1
-			print('s update_count%i'%(s_update_count))
+			# print('s update_count%i'%(s_update_count))
+		reward_list_tmp.append(reward_list_ttmp)
+		done_list_tmp.append(done_list_ttmp)
 
 	if rb_list[0].count <= INITIALIZE_REPLAY_BUFFER:
 		continue
@@ -179,7 +192,11 @@ for _ in range(MAX_ITER/MAX_TIME):
 		sess.run(KB_actor_train_op, feed_dict = feeding_dict)
 		sess.run([KB_critic_update_op, KB_actor_update_op])
 		KB_update_count += 1
-		print('KB update count%i'%(KB_update_count))
+
+	reward_list.append(reward_list_tmp)
+	done_list.append(done_list_tmp)
+	print('iter_count: %i, avg_reward: %3.2f'%(iter_count, 1.*np.mean(reward_list_tmp) ))
+		# print('KB update count%i'%(KB_update_count))
 	# [feeding_dict.update({critic.target_input: mini_batch[3]})]
 	# a2_batches = sess.run([])
 	# for i in range(num_of_task):
@@ -195,3 +212,12 @@ for _ in range(MAX_ITER/MAX_TIME):
 		# env.render(close = True)
 
 # pdb.set_trace()
+filename = '/disk/scratch/chenyang/transfer/Data/mtl_cartpole/exp_mtl'
+my_shelf = shelve.open(filename,'n')
+saving_var_list = ['reward_list', 'done_list', 's_actor_list', 's_critic_list']
+for key in saving_var_list:
+    try:
+        my_shelf[key] = globals()[key]
+    except TypeError:
+        print('ERROR shelving: {0}'.format(key))
+my_shelf.close()

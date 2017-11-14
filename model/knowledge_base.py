@@ -39,11 +39,12 @@ class KnowledgeBase(object):
 class PathPolicy(object):
 
 	def __init__(self, input_dim, output_dim, knowledge_base = None, layer_shape = None, num_of_latent = None, \
-		layer_type = 'fcnn', name = 'task_0', allow_context = False, context_dim = None, context_layer = 0, pre_defined_context = None):
+		layer_type = 'fcnn', name = 'task_0', allow_context = False, context_dim = None, context_layer = 0, pre_defined_context = None, final_layer_act_function = None):
 
 		self.input_dim = input_dim
 		self.output_dim = output_dim
 		self.name = name
+		self.final_layer_act_function = final_layer_act_function
 		if knowledge_base is None:
 			self.KB = KnowledgeBase(layer_shape, num_of_latent, layer_type, name + 'KB')
 			self.layer_shape = layer_shape
@@ -103,8 +104,10 @@ class PathPolicy(object):
 				else:
 					self.hidden_units[i+1] = tf.nn.relu( tf.matmul(self.hidden_units[i], self.weights_task[i]) + self.bias_task[i])
 
-			self.output_weights = tf.Variable( tf.truncated_normal([self.layer_shape[-1], self.output_dim], stddev = 1.0), name = 'weights_output', trainable = True)
+			self.output_weights = tf.Variable( tf.truncated_normal([self.layer_shape[-1], self.output_dim], stddev = 1.0), name = 'weights_output', trainable = True)				
 			outputs = tf.matmul( self.hidden_units[-1], self.output_weights )
+			if self.final_layer_act_function == 'tanh':
+				outputs = tf.nn.tanh(outputs) * 10.
 			if self.allow_context:
 				return inputs, outputs, contexts
 			else:
