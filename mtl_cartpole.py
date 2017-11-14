@@ -176,7 +176,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 	reward_list.append(reward_list_tmp)
 	done_list.append(done_list_tmp)
 	print('iter_count: %i, avg_reward: %3.2f'%(iter_count, 1.*np.mean(reward_list_tmp) ))
-	
+
 	if rb_list[0].count <= INITIALIZE_REPLAY_BUFFER:
 		continue
 	KB_update_count = 0
@@ -191,6 +191,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		training_q_batches = [mini_batch[2] + GAMMA * tmp_q_batch for mini_batch, tmp_q_batch in zip(mini_batches, tmp_q_batches)]
 		
 		feeding_dict = {}
+		[print(mini_batch[4].shape) for mini_batch in mini_batches]
 		[feeding_dict.update({critic.input: mini_batch[0], context_input[i]: mini_batch[4], action_input[i]: mini_batch[1], training_q_list[i]: training_q_batch}) \
 			 for critic, mini_batch, training_q_batch, i in zip(s_critic_list, mini_batches, training_q_batches, range(num_of_task))]
 		sess.run(KB_critic_train_op, feed_dict = feeding_dict)
