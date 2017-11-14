@@ -40,8 +40,8 @@ action_high_bound = env_list[0].action_space.high
 num_of_task = len(env_list)
 ## Building network
 print('Building Network')
-context_input = [tf.placeholder(tf.float32, [None, context_dim], name = 'context_input%i'%(i)) for i in range(num_of_task)]
-action_input = [tf.placeholder(tf.float32, [None, output_dim], name = 'action_input%i'%(i)) for i in range(num_of_task)]
+context_input = [tf.placeholder(tf.float32, [ None, context_dim], name = 'context_input%i'%(i)) for i in range(num_of_task)]
+action_input = [tf.placeholder(tf.float32, [ None, output_dim], name = 'action_input%i'%(i)) for i in range(num_of_task)]
 pre_defined_context = [tf.concat([u,v], axis = 1) for u,v in zip(context_input, action_input)]
 
 # context_input = tf.placeholder(tf.float32, [None, context_dim], name = 'context_input')
