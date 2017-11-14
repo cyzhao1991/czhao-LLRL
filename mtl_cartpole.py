@@ -9,7 +9,7 @@ from utils.replay_buffer import ReplayBuffer
 from utils.ounoise import OUNoise
 
 LAYER_SHAPE = [300,300]
-NUM_OF_LATENT = 1
+NUM_OF_LATENT = 50
 LEARNING_RATE_ACTOR = 0.0001
 LEARNING_RATE_CRITIC = 0.001
 ALPHA_L2 = 0.01
@@ -22,10 +22,10 @@ BATCH_SIZE = 32
 MAX_ITER = 100000
 GAMMA = 0.99
 
-m_cart_list = np.random.rand(2) * 4.5 + 0.5
-m_pole_list = np.random.rand(2) * 0.9 + 0.1
-l_pole_list = np.random.rand(2) * 1.0 + 0.5
-g_bool_list = np.random.randint(2, size = 2)
+m_cart_list = np.random.rand(20) * 4.5 + 0.5
+m_pole_list = np.random.rand(20) * 0.9 + 0.1
+l_pole_list = np.random.rand(20) * 1.0 + 0.5
+g_bool_list = np.random.randint(2, size = 20)
 g_doub_list = g_bool_list * 9.81
 
 gen_env_list = [(CartPoleEnv(g, mc, mp, size_pole = (lp, .1)), np.array([mc, mp, lp, g/9.81]))for mc, mp, lp, g in zip(m_cart_list, m_pole_list, l_pole_list, g_doub_list)]
@@ -137,7 +137,8 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		noise.reset()
 		reward_list_ttmp = []
 		done_list_ttmp = []
-		s_list_ttmp = []
+		s_actor_list_ttmp = []
+		s_critic_list_ttmp = []
 		s_update_count = 0
 
 		for _ in range(MAX_TIME):
