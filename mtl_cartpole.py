@@ -129,8 +129,8 @@ sess.run(tf.global_variables_initializer())
 ## s_list: num_Iter x num_tasks x time_step x s_size
 reward_list = []
 done_list = []
-s_actor_list = []
-s_critic_list = []
+s_actor_eval_list = []
+s_critic__eval_list = []
 for iter_count in range(MAX_ITER/MAX_TIME):
 	reward_list_tmp = []
 	done_list_tmp = []
@@ -171,9 +171,14 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 			sess.run([s_critic_update_op_list[i],s_actor_update_op_list[i]])
 			s_update_count+=1
 			# print('s update_count%i'%(s_update_count))
+
+		s_actor_list_tmp.append(s_actor_list_ttmp)
+		s_critic_list_tmp.append(s_critic_list_ttmp)
 		reward_list_tmp.append(reward_list_ttmp)
 		done_list_tmp.append(done_list_ttmp)
 
+	s_actor_eval_list.append(s_actor_list_tmp)
+	s_critic__eval_list.append(s_critic_list_tmp)
 	reward_list.append(reward_list_tmp)
 	done_list.append(done_list_tmp)
 	print('iter_count: %i, avg_reward: %3.2f'%(iter_count, 1.*np.mean(reward_list_tmp) ))
@@ -185,6 +190,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		mini_batches = [rb.rand_sample(batch_size = BATCH_SIZE) for rb in rb_list]
 		feeding_dict = {}
 		[feeding_dict.update({actor.target_input: mini_batch[3], actor.target_context:mini_batch[4]}) for actor, mini_batch in zip(s_actor_list, mini_batches)]
+		# feeding_dict = {s_actor_list[0].target_input: mini_batches[0][3], s_actor_list[0].target_context: mini_batches[0][4]}
 		a2_batches = sess.run([actor.target_output for actor in s_actor_list], feed_dict = feeding_dict)
 
 		tmp_q_batches = [sess.run(critic.target_output, feed_dict = {critic.target_input: mini_batch[3], context_input[i]: mini_batch[4], action_input[i]: a2_batch}) \
@@ -192,7 +198,6 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		training_q_batches = [mini_batch[2] + GAMMA * tmp_q_batch for mini_batch, tmp_q_batch in zip(mini_batches, tmp_q_batches)]
 		
 		feeding_dict = {}
-		[print(mini_batch[4].shape) for mini_batch in mini_batches]
 		[feeding_dict.update({critic.input: mini_batch[0], context_input[i]: mini_batch[4], action_input[i]: mini_batch[1], training_q_list[i]: training_q_batch}) \
 			 for critic, mini_batch, training_q_batch, i in zip(s_critic_list, mini_batches, training_q_batches, range(num_of_task))]
 		sess.run(KB_critic_train_op, feed_dict = feeding_dict)
