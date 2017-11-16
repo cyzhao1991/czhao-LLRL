@@ -9,7 +9,7 @@ from utils.replay_buffer import ReplayBuffer
 from utils.ounoise import OUNoise
 
 LAYER_SHAPE = [300,300]
-NUM_OF_LATENT = 10
+NUM_OF_LATENT = 1
 LEARNING_RATE_ACTOR = 0.0001
 LEARNING_RATE_CRITIC = 0.001
 ALPHA_L2 = 0.01
@@ -21,7 +21,7 @@ MAX_TIME = 200
 BATCH_SIZE = 64
 MAX_ITER = 100000
 GAMMA = 0.99
-NUM_OF_TASK = 5
+NUM_OF_TASK = 
 
 m_cart_list = np.random.rand(NUM_OF_TASK) * 4.5 + 0.5
 m_pole_list = np.random.rand(NUM_OF_TASK) * 0.9 + 0.1
