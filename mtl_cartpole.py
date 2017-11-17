@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 import model.knowledge_base as mykb
 from env.cartpole import CartPoleEnv
-import os, pdb, gym
+import os, pdb, gym, shelve
 from gym import wrappers
 from utils.replay_buffer import ReplayBuffer
 from utils.ounoise import OUNoise
