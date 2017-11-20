@@ -142,6 +142,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 
 	action_tmp_list = []
 	q_loss_tmp_list = []
+	mse_loss_tmp_list=[]
 
 	for env, context, actor, critic, rb, noise, i in task_listing:
 
@@ -208,7 +209,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		feeding_dict = {}
 		[feeding_dict.update({critic.input: mini_batch[0], context_input[i]: mini_batch[4], action_input[i]: mini_batch[1], training_q_list[i]: training_q_batch}) \
 			 for critic, mini_batch, training_q_batch, i in zip(s_critic_list, mini_batches, training_q_batches, range(num_of_task))]
-		_, q_loss_tmp = sess.run([KB_critic_train_op, total_loss], feed_dict = feeding_dict)
+		_, q_loss_tmp,_mse_loss_tmp = sess.run([KB_critic_train_op, total_loss, tf.reduce_sum(mse_loss_list)], feed_dict = feeding_dict)
 
 		feeding_dict = {}
 		[feeding_dict.update({actor.input: mini_batch[0], actor.context: mini_batch[4], critic.input:mini_batch[0], context_input[i]: mini_batch[4], action_input[i]: mini_batch[1]}) \
@@ -218,7 +219,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		KB_update_count += 1
 		q_loss_tmp_list.append(q_loss_tmp)
 
-	print('iter_count: %i, avg_reward: %3.2f, avg_loss:%3.2f'%(iter_count, 1.*np.mean(reward_list_tmp), 1.*np.mean(q_loss_tmp_list)))
+	print('iter_count: %i, avg_reward: %3.2f, avg_loss:%3.2f, avg_mse_loss:%3.2f'%(iter_count, 1.*np.mean(reward_list_tmp), 1.*np.mean(q_loss_tmp_list)))
 
 	
 		# print('KB update count%i'%(KB_update_count))
