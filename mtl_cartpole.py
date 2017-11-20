@@ -100,9 +100,9 @@ KB_critic_gradient = critic_optimizer.compute_gradients( KB_update_loss, var_lis
 s_critic_gradient_list = [critic_optimizer.compute_gradients( tmp_loss, var_list = tmp_var ) for tmp_loss, tmp_var in zip(s_update_loss_list, s_critic_var_list_per_task)]
 
 inter_grads = [tf.gradients(q, a)[0] for q, a in zip(q_list, action_input)]
-KB_actor_gradient = [actor_optimizer.compute_gradients(a, var_list = KB_actor_var_list, grad_loss = -g) for a, g in zip(action_list, inter_grads)]
+KB_actor_gradient = [actor_optimizer.compute_gradients(a, var_list = KB_actor_var_list, grad_loss = g) for a, g in zip(action_list, inter_grads)]
 KB_actor_gradient = [( tf.add_n([KB_actor_gradient[j][i][0] for j in range(len(KB_actor_gradient))]),KB_actor_gradient[0][i][1]) for i in range(len(KB_actor_gradient[0]))]
-s_actor_gradient_list = [actor_optimizer.compute_gradients(a, var_list = s_var_list, grad_loss = -g) for a,s_var_list,g in zip(action_list, s_actor_var_list_per_task,inter_grads)]
+s_actor_gradient_list = [actor_optimizer.compute_gradients(a, var_list = s_var_list, grad_loss = g) for a,s_var_list,g in zip(action_list, s_actor_var_list_per_task,inter_grads)]
 # Applying gradients and updating network
 print('Applying gradients and updating network')
 KB_critic_train_op = critic_optimizer.apply_gradients( KB_critic_gradient )
