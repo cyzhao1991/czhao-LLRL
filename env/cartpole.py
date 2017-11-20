@@ -70,16 +70,16 @@ class CartPoleEnv(gym.Env):
 		self.j1.attach(self.body1, ode.environment)
 		self.j1.setAxis( (1, 0, 0) )
 		self.j1.setFeedback(1)
-		# self.j1.setParam(ode.ParamLoStop, -10)
-		# self.j1.setParam(ode.ParamHiStop, 10)
+		self.j1.setParam(ode.ParamLoStop, -10)
+		self.j1.setParam(ode.ParamHiStop, 10)
 
 		self.j2 = ode.HingeJoint(self.world)
 		self.j2.attach(self.body1, self.body2)
 		self.j2.setAnchor( (0., 0. ,0.) )
 		self.j2.setAxis ( (0, 0, -1) )
 		self.j2.setFeedback(1)
-		# self.j2.setParam(ode.ParamLoStop, -np.pi)
-		# self.j2.setParam(ode.ParamHiStop, np.pi)
+		self.j2.setParam(ode.ParamLoStop, -np.pi)
+		self.j2.setParam(ode.ParamHiStop, np.pi)
 
 	def _seed(self, seed = None):
 		self.np_random, seed = seeding.np_random(seed)
