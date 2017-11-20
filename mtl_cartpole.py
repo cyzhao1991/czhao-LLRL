@@ -55,10 +55,10 @@ pre_defined_context = [tf.concat([u,v], axis = 1) for u,v in zip(context_input, 
 
 L_actor = mykb.KnowledgeBase(LAYER_SHAPE, NUM_OF_LATENT, name = 'cartpole_KB_actor', seed = SEED)
 L_critic = mykb.KnowledgeBase(LAYER_SHAPE, NUM_OF_LATENT, name = 'cartpole_KB_critic', seed = SEED)
-s_actor_list = [mykb.PathPolicy(input_dim, output_dim, knowledge_base = L_actor, name = 'cartpole_s_actor_task%i'%(i), seed = SEED\
+s_actor_list = [mykb.PathPolicy(input_dim, output_dim, knowledge_base = L_actor, name = 'cartpole_s_actor_task%i'%(i), seed = SEED, \
 	allow_context = True, context_dim = context_dim, context_layer = 0, final_layer_act_function = 'tanh') for i in range(num_of_task)]
 ## critic takes input action along with context
-s_critic_list = [mykb.PathPolicy(input_dim, 1, knowledge_base = L_critic, name = 'cartpole_s_critic_task%i'%(i), seed = SEED\
+s_critic_list = [mykb.PathPolicy(input_dim, 1, knowledge_base = L_critic, name = 'cartpole_s_critic_task%i'%(i), seed = SEED, \
 	allow_context = True, context_dim = output_dim + context_dim, context_layer = 0, pre_defined_context = pre_defined_context[i]) for i in range(num_of_task)]
 rb_list = [ReplayBuffer() for i in range(num_of_task)]
 on_list = [OUNoise(output_dim) for i in range(num_of_task)]
