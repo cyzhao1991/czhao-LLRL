@@ -9,9 +9,11 @@ from utils.replay_buffer import ReplayBuffer
 from utils.ounoise import OUNoise
 
 LAYER_SHAPE = [300,300]
-NUM_OF_LATENT = 1
-LEARNING_RATE_ACTOR = 0.0001
-LEARNING_RATE_CRITIC = 0.001
+NUM_OF_LATENT = 10
+LEARNING_RATE_ACTOR_KB = 0.0001
+LEARNING_RATE_CRITIC_KB = 0.001
+LEARNING_RATE_ACTOR_s = 0.0001
+LEARNING_RATE_CRITIC_s = 0.001
 ALPHA_L2 = 0.01
 ALPHA_L1 = 0.1
 TAU_ACTOR = 0.001
@@ -21,7 +23,7 @@ MAX_TIME = 200
 BATCH_SIZE = 64
 MAX_ITER = 100000
 GAMMA = 0.99
-NUM_OF_TASK = 1
+NUM_OF_TASK = 5
 
 m_cart_list = np.random.rand(NUM_OF_TASK) * 4.5 + 0.5
 m_pole_list = np.random.rand(NUM_OF_TASK) * 0.9 + 0.1
@@ -68,8 +70,8 @@ input_placeholders_critic = [v.input for v in s_critic_list]
 q_list = [v.output for v in s_critic_list]
 action_list = [tf.clip_by_value(v.output, action_low_bound, action_high_bound) for v in s_actor_list]
 
-actor_optimizer = tf.train.AdamOptimizer(learning_rate = LEARNING_RATE_ACTOR, name = 'adam_actor')
-critic_optimizer = tf.train.AdamOptimizer(learning_rate = LEARNING_RATE_CRITIC, name = 'adam_critic')
+actor_optimizer = tf.train.AdamOptimizer(learning_rate = LEARNING_RATE_ACTOR_KB, name = 'adam_actor')
+critic_optimizer = tf.train.AdamOptimizer(learning_rate = LEARNING_RATE_CRITIC_KB, name = 'adam_critic')
 
 KB_actor_var_list = L_actor.variable_list()
 KB_actor_target_var_list = L_actor.target_variable_list()
@@ -130,12 +132,16 @@ sess.run(tf.global_variables_initializer())
 reward_list = []
 done_list = []
 s_actor_eval_list = []
-s_critic__eval_list = []
+s_critic_eval_list = []
 for iter_count in range(MAX_ITER/MAX_TIME):
 	reward_list_tmp = []
 	done_list_tmp = []
 	s_actor_list_tmp = []
 	s_critic_list_tmp = []
+
+	action_tmp_list = []
+	q_loss_tmp_list = []
+
 	for env, context, actor, critic, rb, noise, i in task_listing:
 
 		state = env.reset()
@@ -145,6 +151,8 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		s_actor_list_ttmp = []
 		s_critic_list_ttmp = []
 		s_update_count = 0
+
+		
 
 		for _ in range(MAX_TIME):
 			action = sess.run(actor.output ,feed_dict = {actor.input: state[np.newaxis,:], actor.context: context[np.newaxis,:]} )
@@ -167,7 +175,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 			training_q_batch = r_batch + GAMMA * tmp_q_batch
 
 			sess.run(s_actor_train_op_list[i], feed_dict = {actor.input: s_batch, actor.context: c_batch, critic.input: s_batch, context_input[i]: c_batch, action_input[i]: a_batch})
-			sess.run(s_critic_train_op_list[i], feed_dict = {critic.input: s_batch, context_input[i]: c_batch, action_input[i]: a_batch, training_q_list[i]: training_q_batch})
+			sess.run([s_critic_train_op_list[i], ] feed_dict = {critic.input: s_batch, context_input[i]: c_batch, action_input[i]: a_batch, training_q_list[i]: training_q_batch})
 			sess.run([s_critic_update_op_list[i],s_actor_update_op_list[i]])
 			s_update_count+=1
 			# print('s update_count%i'%(s_update_count))
@@ -178,10 +186,9 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		done_list_tmp.append(done_list_ttmp)
 
 	s_actor_eval_list.append(s_actor_list_tmp)
-	s_critic__eval_list.append(s_critic_list_tmp)
+	s_critic_eval_list.append(s_critic_list_tmp)
 	reward_list.append(reward_list_tmp)
 	done_list.append(done_list_tmp)
-	print('iter_count: %i, avg_reward: %3.2f'%(iter_count, 1.*np.mean(reward_list_tmp) ))
 
 	if rb_list[0].count <= INITIALIZE_REPLAY_BUFFER:
 		continue
@@ -200,7 +207,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		feeding_dict = {}
 		[feeding_dict.update({critic.input: mini_batch[0], context_input[i]: mini_batch[4], action_input[i]: mini_batch[1], training_q_list[i]: training_q_batch}) \
 			 for critic, mini_batch, training_q_batch, i in zip(s_critic_list, mini_batches, training_q_batches, range(num_of_task))]
-		sess.run(KB_critic_train_op, feed_dict = feeding_dict)
+		_, q_loss_tmp = sess.run([KB_critic_train_op, total_loss], feed_dict = feeding_dict)
 
 		feeding_dict = {}
 		[feeding_dict.update({actor.input: mini_batch[0], actor.context: mini_batch[4], critic.input:mini_batch[0], context_input[i]: mini_batch[4], action_input[i]: mini_batch[1]}) \
@@ -208,6 +215,9 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 		sess.run(KB_actor_train_op, feed_dict = feeding_dict)
 		sess.run([KB_critic_update_op, KB_actor_update_op])
 		KB_update_count += 1
+		q_loss_tmp_list.append(q_loss_tmp)
+
+	print('iter_count: %i, avg_reward: %3.2f, avg_loss:%3.2f'%(iter_count, 1.*np.mean(reward_list_tmp), 1.*np.mean(q_loss_tmp_list)))
 
 	
 		# print('KB update count%i'%(KB_update_count))
