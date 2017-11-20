@@ -175,7 +175,7 @@ for iter_count in range(MAX_ITER/MAX_TIME):
 			training_q_batch = r_batch + GAMMA * tmp_q_batch
 
 			sess.run(s_actor_train_op_list[i], feed_dict = {actor.input: s_batch, actor.context: c_batch, critic.input: s_batch, context_input[i]: c_batch, action_input[i]: a_batch})
-			sess.run([s_critic_train_op_list[i], ] feed_dict = {critic.input: s_batch, context_input[i]: c_batch, action_input[i]: a_batch, training_q_list[i]: training_q_batch})
+			sess.run(s_critic_train_op_list[i] feed_dict = {critic.input: s_batch, context_input[i]: c_batch, action_input[i]: a_batch, training_q_list[i]: training_q_batch})
 			sess.run([s_critic_update_op_list[i],s_actor_update_op_list[i]])
 			s_update_count+=1
 			# print('s update_count%i'%(s_update_count))
