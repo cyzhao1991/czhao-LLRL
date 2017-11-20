@@ -15,8 +15,8 @@ class KnowledgeBase(object):
 
 		self.L_weights = []
 		self.L_bias = []
-		self.build(name = name, seed)
-		self.build(name = name+'_target', seed)
+		self.build(name = name, seed = seed)
+		self.build(name = name+'_target', seed = seed)
 
 	def build(self, name, seed = None):
 
