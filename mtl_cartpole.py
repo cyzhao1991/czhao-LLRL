@@ -10,8 +10,8 @@ from utils.ounoise import OUNoise
 
 LAYER_SHAPE = [300,300]
 NUM_OF_LATENT = 10
-LEARNING_RATE_ACTOR_KB = 0.0001
-LEARNING_RATE_CRITIC_KB = 0.001
+LEARNING_RATE_ACTOR_KB = 0.000001
+LEARNING_RATE_CRITIC_KB = 0.00001
 LEARNING_RATE_ACTOR_s = 0.0001
 LEARNING_RATE_CRITIC_s = 0.001
 ALPHA_L2 = 0.01
@@ -24,6 +24,7 @@ BATCH_SIZE = 64
 MAX_ITER = 100000
 GAMMA = 0.99
 NUM_OF_TASK = 5
+SEED = 1992
 
 m_cart_list = np.random.rand(NUM_OF_TASK) * 4.5 + 0.5
 m_pole_list = np.random.rand(NUM_OF_TASK) * 0.9 + 0.1
@@ -52,12 +53,12 @@ pre_defined_context = [tf.concat([u,v], axis = 1) for u,v in zip(context_input, 
 # target_context_input = [tf.placeholder(tf.float32, [None, context_dim]) for _ in range(num_of_task)]
 # target_action_input = [tf.placeholder(tf.float32, [None, output_dim]) for _ in range(num_of_task)]
 
-L_actor = mykb.KnowledgeBase(LAYER_SHAPE, NUM_OF_LATENT, name = 'cartpole_KB_actor')
-L_critic = mykb.KnowledgeBase(LAYER_SHAPE, NUM_OF_LATENT, name = 'cartpole_KB_critic')
-s_actor_list = [mykb.PathPolicy(input_dim, output_dim, knowledge_base = L_actor, name = 'cartpole_s_actor_task%i'%(i), \
+L_actor = mykb.KnowledgeBase(LAYER_SHAPE, NUM_OF_LATENT, name = 'cartpole_KB_actor', seed = SEED)
+L_critic = mykb.KnowledgeBase(LAYER_SHAPE, NUM_OF_LATENT, name = 'cartpole_KB_critic', seed = SEED)
+s_actor_list = [mykb.PathPolicy(input_dim, output_dim, knowledge_base = L_actor, name = 'cartpole_s_actor_task%i'%(i), , seed = SEED\
 	allow_context = True, context_dim = context_dim, context_layer = 0, final_layer_act_function = 'tanh') for i in range(num_of_task)]
 ## critic takes input action along with context
-s_critic_list = [mykb.PathPolicy(input_dim, 1, knowledge_base = L_critic, name = 'cartpole_s_critic_task%i'%(i), \
+s_critic_list = [mykb.PathPolicy(input_dim, 1, knowledge_base = L_critic, name = 'cartpole_s_critic_task%i'%(i), , seed = SEED\
 	allow_context = True, context_dim = output_dim + context_dim, context_layer = 0, pre_defined_context = pre_defined_context[i]) for i in range(num_of_task)]
 rb_list = [ReplayBuffer() for i in range(num_of_task)]
 on_list = [OUNoise(output_dim) for i in range(num_of_task)]
@@ -100,9 +101,9 @@ KB_critic_gradient = critic_optimizer.compute_gradients( KB_update_loss, var_lis
 s_critic_gradient_list = [critic_optimizer.compute_gradients( tmp_loss, var_list = tmp_var ) for tmp_loss, tmp_var in zip(s_update_loss_list, s_critic_var_list_per_task)]
 
 inter_grads = [tf.gradients(q, a)[0] for q, a in zip(q_list, action_input)]
-KB_actor_gradient = [actor_optimizer.compute_gradients(a, var_list = KB_actor_var_list, grad_loss = g) for a, g in zip(action_list, inter_grads)]
+KB_actor_gradient = [actor_optimizer.compute_gradients(a, var_list = KB_actor_var_list, grad_loss = -g) for a, g in zip(action_list, inter_grads)]
 KB_actor_gradient = [( tf.add_n([KB_actor_gradient[j][i][0] for j in range(len(KB_actor_gradient))]),KB_actor_gradient[0][i][1]) for i in range(len(KB_actor_gradient[0]))]
-s_actor_gradient_list = [actor_optimizer.compute_gradients(a, var_list = s_var_list, grad_loss = g) for a,s_var_list,g in zip(action_list, s_actor_var_list_per_task,inter_grads)]
+s_actor_gradient_list = [actor_optimizer.compute_gradients(a, var_list = s_var_list, grad_loss = -g) for a,s_var_list,g in zip(action_list, s_actor_var_list_per_task,inter_grads)]
 # Applying gradients and updating network
 print('Applying gradients and updating network')
 KB_critic_train_op = critic_optimizer.apply_gradients( KB_critic_gradient )
