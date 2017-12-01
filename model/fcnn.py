@@ -44,5 +44,5 @@ class Fcnn(object):
 		return self.input, self.output
 
 
-	[v for v in tf.global_variables() if 'weights1' in v.name]
-	sess.run(v.eval())
+	# [v for v in tf.global_variables() if 'weights1' in v.name]
+	# sess.run(v.eval())
