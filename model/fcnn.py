@@ -9,7 +9,8 @@ class Fcnn(object):
 		self.num_of_layers = num_of_layers
 		self.dim_of_units = dim_of_units
 		self.sess = sess
-
+		self.name = name
+		
 		self.dim_of_all = np.array(self.dim_of_units)
 		self.dim_of_all = np.insert(self.dim_of_all, 0, input_dim)
 		self.dim_of_all = np.append(self.dim_of_all, output_dim)
