@@ -1,5 +1,13 @@
-import tensorflow as tf
-from model.fcnnMTL import FcnnMTL
+from __future__ import print_function
+# import tensorflow as tf
+# from model.fcnnMTL import FcnnMTL
+import time,sys
 
-sess = tf.Session()
-a = FcnnMTL(sess, 10, 10, 2, [40,40], 10)
+print('whatever sth')
+t = time.time()
+for i in range(10):
+	sys.stdout.write('num: %i'%i+'\r')
+	sys.stdout.flush()
+	time.sleep(0.1)
+print('finished print. time = %f'%(time.time()-t))
+print('sth new')
