@@ -6,6 +6,7 @@ class Paras_base(object):
 	flags.DEFINE_integer('max_iter', 200, 'maximum training iteration')
 	flags.DEFINE_integer('max_time_step', 500, 'maximum time step per episode')
 	flags.DEFINE_integer('num_of_paths', 1000, 'number of paths in each ')
+	flags.DEFINE_integer('action_shape', 1, 'dimension of action ')
 
 	flags.DEFINE_float('discount', 0.99, 'discount factor for env')
 	flags.DEFINE_float('max_std', 2.6, 'maximum std for action distribution')

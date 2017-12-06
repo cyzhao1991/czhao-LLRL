@@ -12,6 +12,8 @@ class Actor(object):
 		self.input_ph = self.net.input
 		self.output_net = self.net.output
 
+		self.var_list = []
+
 	def get_action(self, inputs):
 		raise NotImplementedError
 
@@ -24,7 +26,7 @@ class Gaussian_Actor(Actor):
 			self.action_std = tf.exp(self.action_logstd)
 			self.action_std = tf.maximum(self.action_std, self.pms.min_std)
 			self.action_std = tf.minimum(self.action_std, self.pms.max_std)
-
+		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith('self.pms.name')]
 
 	def get_action(self, inputs):
 

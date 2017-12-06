@@ -7,6 +7,10 @@ def discount(x, gamma):
 
 	return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis = 0)[::-1]
 
+def log_likelihood(x, means, logstds):
+	zs = (x - means)/tf.exp(logstds)
+	return -tf.reduce_sum(logstds, -1) - .5 *tf.reduce_sum(tf.squeeze(zs), -1) - .5*means.get_shape()[-1].value * np.log(2*np.pi)
+
 class TRPOagent(object):
 
 	def __init__(self, env, actor, baseline, session, flags):
@@ -20,10 +24,15 @@ class TRPOagent(object):
 
 		with tf.name_scope(pms.name_scope):
 			self.advant = tf.placeholder(tf.float32, [None], name = 'advantages')
-			self.
+			self.old_dist_mean = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_mean')
+			self.old_dist_logstd = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_std')
+			self.action_n = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'action_n')
+
+		self.
 
 		self.actor_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.actor.name)]
 		self.baseline_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.baseline.name)]
+
 	def get_single_path(self):
 
 		observations = []

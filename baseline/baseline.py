@@ -5,6 +5,7 @@ class Baseline(object):
 	def __init__(self, sess, pms):
 		self.sess = sess
 		self.pms = pms
+		self.var_list = []
 
 	def fit(self, path):
 		raise NotImplementedError
@@ -15,6 +16,7 @@ class Baseline(object):
 class Baseline_Zeros(Baseline):
 	def __init__(self, sess, pms):
 		super(Baseline_Zeros, self).__init__(self, sess, pms)
+		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith('self.pms.name')]
 
 	def fit(self, path):
 		return None
