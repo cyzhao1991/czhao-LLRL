@@ -22,7 +22,8 @@ class Gaussian_Actor(Actor):
 	def __init__(self, net, pms):
 		super(Gaussian_Actor, self).__init__(self, net, sess, pms)
 		with tf.name_scope(self.net.name):
-			self.action_logstd = tf.Variable( (0.01*np.random.randn(1, self.net.output_dim)).astype(np.float32) ,name = 'weights_logstd')
+			self.action_logstd_param = tf.Variable( (0.01*np.random.randn(1, self.net.output_dim)).astype(np.float32) ,name = 'weights_logstd')
+			self.action_logstd = tf.tile(self.action_logstd_param, tf.stack( [tf.shape(self.output_net)[0].,1] ) )
 			self.action_std = tf.exp(self.action_logstd)
 			self.action_std = tf.maximum(self.action_std, self.pms.min_std)
 			self.action_std = tf.minimum(self.action_std, self.pms.max_std)
@@ -35,10 +36,11 @@ class Gaussian_Actor(Actor):
 
 		feed_dict = {self.input_ph: inputs}
 		a_mean, a_std, a_logstd = self.sess.run([self.output_net, self.action_std, self.action_logstd], feed_dict = feed_dict)
+		a_mean, a_std, a_logstd = map(np.squeeze, [a_mean, a_std, a_logstd])
 		if self.pms.train_flag:
-			action = np.random.normal(a_mean[0], a_std[0])
+			action = np.random.normal( a_mean, a_std )
 		else:
-			action = a_mean[0]
-		return action, dict(mean = a_mean[0], std = a_std[0],log_std = a_logstd[0])
+			action = a_mean
+		return action, dict(mean = a_mean, std = a_std,log_std = a_logstd)
 
 

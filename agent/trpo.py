@@ -2,14 +2,9 @@ import tensorflow as tf
 import numpy as np
 import scipy.signal
 import sys, time, os
+from utils.krylov import cg
+from utils.utils import *
 
-def discount(x, gamma):
-
-	return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis = 0)[::-1]
-
-def log_likelihood(x, means, logstds):
-	zs = (x - means)/tf.exp(logstds)
-	return -tf.reduce_sum(logstds, -1) - .5 *tf.reduce_sum(tf.squeeze(zs), -1) - .5*means.get_shape()[-1].value * np.log(2*np.pi)
 
 class TRPOagent(object):
 
@@ -20,18 +15,40 @@ class TRPOagent(object):
 		self.sess = session
 		self.pms = flags
 
+		self.init_vars()
+
 	def init_vars(self):
 
 		with tf.name_scope(pms.name_scope):
+			self.obs = self.actor.input_ph
 			self.advant = tf.placeholder(tf.float32, [None], name = 'advantages')
+			self.action = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'action')
 			self.old_dist_mean = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_mean')
 			self.old_dist_logstd = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_std')
-			self.action_n = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'action_n')
+			self.new_dist_mean = self.actor.output_net
+			self.new_dist_logstd = self.actor.action_logstd
 
-		self.
+			logli_new = log_likelihood(self.action, self.new_dist_mean, self.new_dist_logstd)
+			logli_old = log_likelihood(self.action, self.old_dist_mean, self.old_dist_logstd)
+			self.ratio = tf.exp(logli_new - logli_old)
 
-		self.actor_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.actor.name)]
-		self.baseline_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.baseline.name)]
+			self.surr_loss = - tf.reduce_mean(self.ratio * self.advant)
+			self.kl = kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd)
+
+			surr_grad = tf.gradients(self.surr_loss, self.actor.var_list)
+			self.flat_surr_grad = flatten_var(surr_grad)
+
+			batchsize = tf.cast(tf.shape(self.obs)[0], tf.float32)
+			self.flat_tangent = tf.placeholder(tf.float32, shape = [None], name = 'flat_tangent')
+			kl_firstfixed = kl_firstfixed(self.new_dist_mean, self.new_dist_logstd)
+			grads = tf.gradients(kl_firstfixed, self.actor.var_list) / batchsize
+			flat_grads = flatten_var(flat_grads)
+			self.fvp = tf.gradients(tf.reduce_sum(flat_grads * self.flat_tangent), self.actor.var_list)
+			self.flat_fvp = flatten_var(self.fvp)
+
+
+		# self.actor_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.actor.name)]
+		# self.baseline_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.baseline.name)]
 
 	def get_single_path(self):
 
@@ -122,5 +139,19 @@ class TRPOagent(object):
 			act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[inds]])
 			act_dis_std_n = np.array([a_info['std'] for a_info in actor_info_source[inds]])
 
+			feed_dict = {self.obs: obs_n,
+						 self.advant: adv_n, 
+						 self.action: act_n, 
+						 self.old_dist_mean: act_dis_mean_n,
+						 self.old_dist_logstd: act_dis_std_n
+						 }
 
+			def fisher_vector_product(p):
+				feed_dict[self.flat_tangent] = p
+				return self.sess.run(self.flat_fvp, feed_dict = feed_dict) + self.pms.cg_damping * p
 
+			g = self.sess.run(self.flat_surr_grad, feed_dict = feed_dict)
+			step_gradient = cg(fisher_vector_product, -g, cg_iters = self.pms.cg_iters)
+			sAs = step_gradient.dot( fisher_vector_product(step_gradient) )
+			inv_stepsize = np.sqrt( sAs/(2.*self.pms.max_kl) )
+			fullstep_gradient = step_gradient / inv_stepsize
