@@ -1,21 +1,20 @@
+from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import scipy.signal
 import sys, time, os
 from utils.krylov import cg
 from utils.utils import *
+from agent.agent import Agent
 
-
-class TRPOagent(object):
+class TRPOagent(Agent):
 
 	def __init__(self, env, actor, baseline, session, flags):
-		self.env = env
-		self.actor = actor
-		self.baseline = baseline
-		self.sess = session
-		self.pms = flags
+		super(TRPOagent, self).__init__(self, env, actor, baseline, session, flags)
 
 		self.init_vars()
+
+		print('Building Network')
 
 	def init_vars(self):
 
@@ -127,9 +126,12 @@ class TRPOagent(object):
 		adv_source = sample_data['advantages']
 		n_samples = sample_data['total_time_step']
 		actor_info_source = sample_data['actor_infos']
+		
 		episode_rewards = np.array([np.sum(path['rewards']) for path in paths])
-
 		train_number = int(1./self.pms.subsample_factor)
+		step_gradients = []
+
+		flat_theta_prev = self.sess.run(flatten_var(self.actor.var_list))
 
 		for iteration in range(train_number):
 			inds = np.random.choice(n_samples, int(np.floor(n_samples*self.pms.subsample_factor)), replace = False)
@@ -155,3 +157,29 @@ class TRPOagent(object):
 			sAs = step_gradient.dot( fisher_vector_product(step_gradient) )
 			inv_stepsize = np.sqrt( sAs/(2.*self.pms.max_kl) )
 			fullstep_gradient = step_gradient / inv_stepsize
+
+			def loss_function(x):
+				self.sess.run(set_from_flat(self.actor.var_list, x))
+				surr_loss, kl = self.sess.run([self.surr_loss, self.kl])
+				# self.sess.run(set_from_flat(self.actor.var_list, flat_theta_prev))
+				return surr_loss
+
+			if self.pms.linesearch:
+				flat_theta_new = linesearch(loss_function, flat_theta_prev, fullstep_gradient, self.pms.maxbacktracks, self.pms.max_kl)
+			else:
+				flat_theta_new = flat_theta_prev + fullstep_gradient
+
+			step_gradients.append(flat_theta_new - flat_theta_prev)
+			flat_theta_new = flat_theta_prev + np.mean(step_gradients, axis = 0)
+			stats = dict(
+				surrgate_loss = loss_function(flat_theta_new),
+				average_return = np.mean(episode_rewards),
+				total_time_step = n_samples
+				)
+			return flat_theta_new, flat_theta_prev, stats
+
+	def learn(self):
+		for iter_num in range(self.pms.max_iter):
+
+
+

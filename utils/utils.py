@@ -14,6 +14,16 @@ def log_likelihood(x, means, logstds):
 def flatten_var(var_list):
 	return tf.concat([tf.reshape(var, [tf.size(var)]) for var in var_list], axis = 0)
 
+def set_from_flat(var_list, x):
+	start = 0
+	assigns = []
+	for var in var_list:
+		shape = var.get_shape().as_list()
+		size = np.prod(shape)		
+		assigns.append(tf.assign(var, np.reshape(x[start:start + size], shape)))
+		start += size
+	return assigns
+
 def kl_sym(mean_1, logstd_1, mean_2, logstd_2):
 	std_1 = tf.exp(logstd_1)
 	std_2 = tf.exp(logstd_2)
@@ -27,3 +37,12 @@ def kl_sym_firstfixed(mean, logstd):
 	m_1, ls_1 = map(tf.stop_gradient, [mean, logstd])
 	m_2, ls_2 = mean, logstd
 	return kl_sym(m_1, ls_1, m_2, ls_2)
+
+def linesearch(f, x, fullstep, max_backtracks, max_kl):
+	fval, kl = f(x)
+	for step_frac in .3**np.arange(max_backtracks):
+		new_x = x + step_frac*fullstep
+		newfval, newkl = f(new_x)
+		if newfval < fval and newkl < max_kl:
+			return new_x
+	return x
