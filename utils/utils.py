@@ -27,7 +27,6 @@ def set_from_flat(var_list, x):
 def kl_sym(mean_1, logstd_1, mean_2, logstd_2):
 	std_1 = tf.exp(logstd_1)
 	std_2 = tf.exp(logstd_2)
-
 	numerator = tf.square(mean_1 - mean_2) + tf.square(std_1) - tf.square(std_2)
 	denominator = 2 * tf.square(std_2) + 1e-8
 	kl = tf.reduce_sum(numerator/denominator + logstd_2 - logstd_1, -1)
@@ -44,5 +43,7 @@ def linesearch(f, x, fullstep, max_backtracks, max_kl):
 		new_x = x + step_frac*fullstep
 		newfval, newkl = f(new_x)
 		if newfval < fval and newkl < max_kl:
+			# print('valid gradient')
+			print(newfval)
 			return new_x
 	return x

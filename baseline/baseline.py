@@ -13,9 +13,9 @@ class Baseline(object):
 	def predict(self, path):
 		raise NotImplementedError
 
-class Baseline_Zeros(Baseline):
+class BaselineZeros(Baseline):
 	def __init__(self, sess, pms):
-		super(Baseline_Zeros, self).__init__(self, sess, pms)
+		super(BaselineZeros, self).__init__(sess, pms)
 		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith('self.pms.name')]
 
 	def fit(self, path):
@@ -50,4 +50,4 @@ TO_DO
 
 # 	def predict(self, path):
 # 		feed_dict 
-
+'''

@@ -1,13 +1,8 @@
 from __future__ import print_function
 # import tensorflow as tf
 # from model.fcnnMTL import FcnnMTL
-import time,sys
+import time,sys, argparse
 
-print('whatever sth')
-t = time.time()
-for i in range(10):
-	sys.stdout.write('num: %i'%i+'\r')
-	sys.stdout.flush()
-	time.sleep(0.1)
-print('finished print. time = %f'%(time.time()-t))
-print('sth new')
+parser = argparse.ArgumentParser()
+parser.add_argument('--gpu', default = 0, type = int)
+parser.add_argument('--exp', default = 0, type = int)

@@ -8,7 +8,7 @@ from utils.utils import *
 
 class Agent(object):
 
-	def __init__(self, env, actor, basline, session, flags):
+	def __init__(self, env, actor, baseline, session, flags):
 		self.env = env
 		self.actor = actor
 		self.baseline = baseline
@@ -23,7 +23,7 @@ class Agent(object):
 	def save_model(self, filename):
 		if not filename.endswith('.ckpt'):
 			filename += '.ckpt'
-		filename = self.pms.save_dir + filename
+		# filename = self.pms.save_dir + filename
 		self.saver.save(self.sess, filename)
 
 	def load_model(self, filename = None):

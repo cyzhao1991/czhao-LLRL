@@ -34,6 +34,7 @@ class Fcnn(object):
 			weights[self.num_of_layers] = tf.Variable(tf.truncated_normal([self.dim_of_all[self.num_of_layers], self.output_dim], stddev = 1.0), name = 'weights'+str(self.num_of_layers),trainable = True)
 
 			output = tf.matmul( inputs[self.num_of_layers], weights[self.num_of_layers] ) 
+			output = 20 * tf.nn.tanh( output )
 
 		return inputs[0], output
 
