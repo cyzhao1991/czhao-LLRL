@@ -171,8 +171,8 @@ class CartPoleEnv(gym.Env):
 		x, xdot, th, thdot = state
 		u = action
 		costs = x **2 + .2*xdot **2 + angle_normalize(th) ** 2 + .1*thdot**2 + .001 *u**2
-		return costs-3
-		# return -1.
+		# return costs - 3
+		return -1.
 
 	def if_done(self, state):
 		# return False
