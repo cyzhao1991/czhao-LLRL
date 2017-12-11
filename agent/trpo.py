@@ -215,7 +215,7 @@ class TRPOagent(Agent):
 
 			[saving_result[k].append(v) for (k,v) in zip(dict_keys, save_value_list)]
 
-			if iter_num % self.pms.save_model_iters == 0:
+			if self.pms.save_model and iter_num % self.pms.save_model_iters == 0:
 				self.save_model(self.pms.save_dir + self.pms.env_name + '-iter%i'%(iter_num))
 
 		return saving_result
