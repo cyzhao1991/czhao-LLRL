@@ -44,7 +44,7 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	pms.num_of_paths = 1000
 	
 	config = tf.ConfigProto()
-	config.gpu_options.per_process_gpu_memory_fraction = 0.02
+	config.gpu_options.per_process_gpu_memory_fraction = 0.20
 	sess = tf.Session(config = config)
 
 	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, 3, [100,50,25], name = pms.name_scope)
