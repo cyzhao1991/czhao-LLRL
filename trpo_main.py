@@ -28,6 +28,7 @@ if not os.path.isdir(dir_name):
 with tf.device('/gpu:%i'%(gpu_num)):
 	pms = Paras_base().pms
 	# print(pms.max_iter)
+	pms.save_model = False
 	pms.save_dir = dir_name
 	# pms.save_dir = '/home/chenyang/Documents/coding/Data/checkpoint/'
 	env = CartPoleEnv()
@@ -38,7 +39,10 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	pms.action_shape = action_size
 	pms.max_action = max_action
 	pms.num_of_paths = 1000
-	sess = tf.Session()
+	
+	config = tf.ConfigProto()
+	config.gpu_options.per_process_gpu_memory_fraction = 0.02
+	sess = tf.Session(config = config)
 
 	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, 3, [100,50,25], name = pms.name_scope)
 	actor = GaussianActor(actor_net, sess, pms)
