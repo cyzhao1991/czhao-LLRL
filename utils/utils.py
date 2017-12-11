@@ -9,7 +9,7 @@ def discount(x, gamma):
 
 def log_likelihood(x, means, logstds):
 	zs = (x - means)/tf.exp(logstds)
-	return -tf.reduce_sum(logstds, -1) - .5 *tf.reduce_sum(tf.squeeze(zs), -1) - .5*means.get_shape()[-1].value * np.log(2*np.pi)
+	return -tf.reduce_sum(logstds, -1) - .5 *tf.reduce_sum(tf.square(zs), -1) - .5*means.get_shape()[-1].value * np.log(2*np.pi)
 
 def flatten_var(var_list):
 	return tf.concat([tf.reshape(var, [tf.size(var)]) for var in var_list], axis = 0)

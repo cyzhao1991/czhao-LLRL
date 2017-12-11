@@ -1,5 +1,5 @@
-for ((i=0; i<25; i++))
+for ((i=0; i<10; i++))
 do
-	python mtl.py --exp_num $((i+50)) --gpu_num 2
-	echo "experiment $((i+50)) done." >> log.txt
+	python trpo_main.py --exp $((i)) --gpu 2
+	echo "gpu 2 experiment $((i)) done." >> log.txt
 done

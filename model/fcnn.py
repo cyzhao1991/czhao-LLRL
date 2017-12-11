@@ -28,13 +28,13 @@ class Fcnn(object):
 			for i in range(self.num_of_layers):
 				weights[i] = tf.Variable(tf.truncated_normal([self.dim_of_all[i], self.dim_of_all[i+1]], stddev = 1.0), name = 'weights'+str(i), trainable = True)
 				bias[i] = tf.Variable(tf.truncated_normal([self.dim_of_all[i+1]], stddev = 0.), name = 'bias'+str(i), trainable = True)
-				inputs[i+1] = tf.nn.relu( tf.matmul( inputs[i], weights[i]) + bias[i] )
+				inputs[i+1] = tf.nn.tanh( tf.matmul( inputs[i], weights[i]) + bias[i] )
 
 
 			weights[self.num_of_layers] = tf.Variable(tf.truncated_normal([self.dim_of_all[self.num_of_layers], self.output_dim], stddev = 1.0), name = 'weights'+str(self.num_of_layers),trainable = True)
 
 			output = tf.matmul( inputs[self.num_of_layers], weights[self.num_of_layers] ) 
-			output = 20 * tf.nn.tanh( output )
+			# output = 20 * tf.nn.tanh( output )
 
 		return inputs[0], output
 

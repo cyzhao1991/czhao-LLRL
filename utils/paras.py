@@ -4,7 +4,7 @@ class Paras_base(object):
 
 	flags = tf.app.flags
 	flags.DEFINE_integer('max_iter', 200, 'maximum training iteration')
-	flags.DEFINE_integer('max_time_step', 500, 'maximum time step per episode')
+	flags.DEFINE_integer('max_time_step', 200, 'maximum time step per episode')
 	flags.DEFINE_integer('num_of_paths', 1000, 'number of paths in each ')
 	flags.DEFINE_integer('obs_shape', 4, 'dimension of observation')
 	flags.DEFINE_integer('action_shape', 1, 'dimension of action')
