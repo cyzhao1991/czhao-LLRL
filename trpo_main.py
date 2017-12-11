@@ -25,6 +25,9 @@ dir_name = '/disk/scratch/chenyang/Data/trpo_stl/gpu%iexp%i/'%(gpu_num, exp_num)
 if not os.path.isdir(dir_name):
 	os.mkdir(dir_name)
 
+with open('log.txt', 'a') as text_file:
+	text_file.write('gpu %i exp %i started.\n'%(gpu_num, exp_num))
+
 with tf.device('/gpu:%i'%(gpu_num)):
 	pms = Paras_base().pms
 	# print(pms.max_iter)
@@ -58,3 +61,5 @@ filename = dir_name + 'shelve_result'
 my_shelf = shelve.open(filename, 'n')
 my_shelf['saving_result'] = saving_result
 my_shelf.close()
+with open('log.txt', 'a') as text_file:
+	text_file.write('gpu %i exp %i finished.\n'%(gpu_num, exp_num))
