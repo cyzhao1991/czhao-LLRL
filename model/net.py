@@ -62,6 +62,24 @@ class Fcnn(Net):
 
 			return net[-1]
 
+
+
+class Fcnn_with_weights(Net):
+
+	def __init__(self, sess, input_dim, output_dim, layer_dim, name = None, **kwargs):
+		super(Fcnn, self).__init__(sess)
+		self.input_dim = input_dim
+		self.output_dim = output_dim
+		self.layer_dim = layer_dim
+		self.name = name
+
+		self.all_layer_dim = np.concatenate()
+
+
+
+
+
+
 # class Fcnn_2side(Net):
 
 # 	def __init__(self, sess, input_dim1, input_dim2, output_dim, layer_dim_1, layer_dim_2, layer_dim_o = [], name = None, **kwargs):
