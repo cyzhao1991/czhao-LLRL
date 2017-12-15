@@ -56,7 +56,6 @@ class Fcnn(Net):
 					
 				else:
 					weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = 1.0), name = 'theta_%i'%i))
-					bias.append( tf.Variable (tf.truncated_normal([dim_2], stddev = 1.0), name = 'bias_%i'%i))
 					net.append( self.activation_fns_call[i]( tf.matmul(net[i], weights[i]) ))
 
 			return net[-1]

@@ -11,7 +11,7 @@ from actor.actor import GaussianActor
 from agent.trpo import TRPOagent
 from baseline.baseline import BaselineZeros
 from env.cartpole import CartPoleEnv
-from model.fcnn import Fcnn
+from model.net import *
 from utils.paras import Paras_base
 
 parser = argparse.ArgumentParser()
@@ -21,6 +21,7 @@ args = vars(parser.parse_args())
 gpu_num = args['gpu']
 exp_num = args['exp']
 
+# dir_name = '/home/chenyang/Documents/coding/Data/checkpoint/'
 dir_name = '/disk/scratch/chenyang/Data/trpo_stl/gpu%iexp%i/'%(gpu_num, exp_num)
 if not os.path.isdir(dir_name):
 	os.mkdir(dir_name)
@@ -47,7 +48,7 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	config.gpu_options.per_process_gpu_memory_fraction = 0.20
 	sess = tf.Session(config = config)
 
-	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, 3, [100,50,25], name = pms.name_scope)
+	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [False], activation_fns = ['tanh', 'tanh', 'None', 'None'])
 	actor = GaussianActor(actor_net, sess, pms)
 	baseline = BaselineZeros(sess, pms)
 
