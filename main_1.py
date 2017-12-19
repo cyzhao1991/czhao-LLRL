@@ -5,7 +5,7 @@ import tensorflow as tf
 from env.cartpole import CartPoleEnv
 import sys, time
 
-tmp_num = sys.argv[1]
+tmp_num = int(sys.argv[1])
 some_list = [range(7), range(7,14), range(14,21), range(21,27)]
 gravity_list = [0., 4.9, 9.8]
 mass_cart = [0.1, 0.5, 1.0]
