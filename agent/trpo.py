@@ -95,7 +95,12 @@ class TRPOagent(Agent):
 			total_time_step += len(path['rewards'])
 			path['baselines'] = self.baseline.predict(path)
 			path['returns'] = discount(path['rewards'], self.pms.discount)
-			path['advantages'] = path['returns'] - path['baselines']
+			if not self.pms.gae_flag:
+				path['advantages'] = path['returns'] - path['baselines']
+			else:
+				b = np.append(path['baselines'], path['baselines'][-1])
+				deltas = path['rewards'] + self.pms.discount * b[1:] - b[:-1]
+				path['advantages'] = discount(deltas, self.pms.discount * self.pms.gae_lambda)
 
 		observations = np.concatenate([path['observations'] for path in paths])
 		actions = np.concatenate([path['actions'] for path in paths])

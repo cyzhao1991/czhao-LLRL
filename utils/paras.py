@@ -19,12 +19,15 @@ class Paras_base(object):
 	flags.DEFINE_float('cg_damping', 0.001 ,'damping factor for conjugate gradient')
 	flags.DEFINE_float('max_kl', .1, 'maximum kl divergence per update')
 	flags.DEFINE_float('max_action', 1.0, 'maximum action')
+	flags.DEFINE_float('gam_lambda', 1.0, 'lambda factor for GAE')
 
 	flags.DEFINE_boolean('render', False, 'whether to render')
 	flags.DEFINE_boolean('train_flag', True, 'whether in training process')
 	flags.DEFINE_boolean('center_adv', True, 'whether normalize advantages')
 	flags.DEFINE_boolean('linesearch', True, 'if linesearch')
 	flags.DEFINE_boolean('save_model', True, 'if save model')
+	flags.DEFINE_boolean('gae_flag', True, 'if using GAE')
+	flags.DEFINE_boolean('with_context', False, 'if with context input')
 
 	flags.DEFINE_string('name_scope', 'trpo', 'name scope for agent')
 	flags.DEFINE_string('env_name', 'cartpole', 'name of environment')

@@ -11,7 +11,7 @@ class Net(object):
 		self.layer_dim = layer_dim
 		self.name = name
 
-		self.all_layer_dim = np.concatenate([[self.input_dim], layer_dim, [self.output_dim]], axis = 0)
+		self.all_layer_dim = np.concatenate([[self.input_dim], layer_dim, [self.output_dim]], axis = 0).astype(int)
 		self.if_bias = kwargs.get('if_bias', ([True] * len(layer_dim))+[False] )
 		self.activation_fns = kwargs.get( 'activation', (['tanh']*len(layer_dim))+['None'])
 		if len(self.if_bias) == 1:
@@ -55,6 +55,7 @@ class Fcnn(Net):
 					net.append( self.activation_fns_call[i]( tf.matmul(net[i], weights[i]) + bias[-1] ))
 					
 				else:
+					print(dim_1,dim_2)
 					weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = 1.0), name = 'theta_%i'%i))
 					net.append( self.activation_fns_call[i]( tf.matmul(net[i], weights[i]) ))
 
@@ -71,25 +72,24 @@ class Modular_Fcnn(Net):
 		with tf.name_scope(self.name):
 			self.input = kwargs.get('input_tf', tf.placeholder(tf.float32, [None, self.input_dim], name = 'input'))
 			self.s_weights = kwargs.get('s_weights', [])
-		assert(len(self.module_num) == len(self.layer_dim))
-		print(self.module_num)
+		assert(len(self.module_num) == len(self.layer_dim) + 1)
 		if len(self.s_weights) == 0:
-			self.s_weights = [tf.Variable(tf.ones([i], tf.float32), name = 's_weight_%i'%i) for i in self.module_num]
-
+			# self.s_weights = [tf.Variable(tf.ones([i], tf.float32), name = 's_weight_%i'%i) for i in self.module_num]
+			self.s_weights = [tf.placeholder(tf.float32, [None, i], name = 's_weight_%i'%i) for i in self.module_num]
 		self.output = self.build(self.input, self.s_weights, self.name)
 
 	def build(self, input_tf, s_weights, name):
-		
+		split_s_weights = [tf.split(s, n, axis = 1) for s,n in zip(self.s_weights, self.module_num)]
 		with tf.name_scope(name):
 			net = [input_tf]
-			weights = []
+			module_net = []
 			module_weights = []
 			if np.any(self.if_bias):
 				bias = []
 				module_bias = []
 
 			for i, (dim_1, dim_2) in enumerate( zip(self.all_layer_dim[:-1], self.all_layer_dim[1:]) ):
-				print(i)
+				module_net.append([])
 				module_weights.append([])
 				if self.if_bias[i]:
 					module_bias.append([])
@@ -98,16 +98,20 @@ class Modular_Fcnn(Net):
 							name = 'theta_layer%i_module%i'%(i, j)) )
 						module_bias[i].append( tf.Variable(tf.truncated_normal([dim_2], stddev = 1.0), \
 							name = 'bias_layer%i_module%i'%(i,j)) )
-					weights.append( tf.reduce_sum([module_weights[i][_] * s_weights[i][_] for _ in range(self.module_num[i])], axis = 0) )
-					bias.append( tf.reduce_sum([module_bias[-1][_] * s_weights[i][_] for _ in range(self.module_num[i])], axis = 0) )
-					net.append( self.activation_fns_call[i](tf.matmul(net[i], weights[i]) + bias[-1] ))
+
+					module_net[i] = [ module_weights[i][_] * split_s_weights[i][_] + module_bias[-1][_] * split_s_weights[i][_] for _ in range(self.module_num[i]) ]
+					# print(tf.reduce_sum(module_net[i])
+					net.append( self.activation_fns_call[i]( tf.reduce_sum(module_net[i], axis = 0) ) )
+					# weights.append( tf.reduce_sum([module_weights[i][_] * s_weights[i][_] for _ in range(self.module_num[i])], axis = 0) )
+					# bias.append( tf.reduce_sum([module_bias[-1][_] * s_weights[i][_] for _ in range(self.module_num[i])], axis = 0) )
+					# net.append( self.activation_fns_call[i](tf.matmul(net[i], weights[i]) + bias[-1] ))
 				else:
 					for j in range(self.module_num[i]):
 						module_weights[i].append( tf.Variable(tf.truncated_normal([dim_1, dim_2], stddev = 1.0), \
 							name = 'theta_layer%i_module%i'%(i, j)) )
-					weights.append( tf.reduce_sum([module_weights[i][_] * s_weights[i][_] for _ in range(self.module_num[i])], axis = 0) )
-					net.append( self.activation_fns_call[i](tf.matmul(net[i], weights[i]) ))
-
+					module_net[i] = [ module_weights[i][_] * split_s_weights[i][_] for _ in range(self.module_num[i])]
+					net.append( self.activation_fns_call[i]( tf.reduce_sum(module_net[i], axis = 0) ) )
+			print([n.shape for n in net])
 			return net[-1]
 
 
