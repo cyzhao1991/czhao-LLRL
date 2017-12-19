@@ -8,7 +8,7 @@ import sys, time, os, gym, shelve, argparse, pdb
 # from agent.agent import Agent
 
 from actor.actor import GaussianActor
-from agent.trpo import TRPOagent
+from agent.trpo_mtl import TRPO_MTLagent
 from baseline.baseline import BaselineZeros
 from env.cartpole import CartPoleEnv
 from model.net import *
