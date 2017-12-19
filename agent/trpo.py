@@ -9,8 +9,8 @@ from agent import Agent
 
 class TRPOagent(Agent):
 
-	def __init__(self, env, actor, baseline, session, flags):
-		super(TRPOagent, self).__init__(env, actor, baseline, session, flags)
+	def __init__(self, env, actor, baseline, session, flags, saver = None):
+		super(TRPOagent, self).__init__(env, actor, baseline, session, flags, saver)
 
 		self.init_vars()
 
@@ -207,10 +207,10 @@ class TRPOagent(Agent):
 			t = time.time()
 			paths = self.get_paths()
 			sample_time = time.time() - t
-
+			t = time.time()
 			theta, theta_old, stats = self.train_paths(paths)
 			self.sess.run(set_from_flat(self.actor.var_list, theta))
-			train_time = time.time() - sample_time
+			train_time = time.time() - t
 
 			for k, v in stats.iteritems():
 				print("%-20s: %15.5f"%(k,v))

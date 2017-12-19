@@ -8,7 +8,7 @@ from utils.utils import *
 
 class Agent(object):
 
-	def __init__(self, env, actor, baseline, session, flags):
+	def __init__(self, env, actor, baseline, session, flags, saver = None):
 		self.env = env
 		self.actor = actor
 		self.baseline = baseline
@@ -16,7 +16,7 @@ class Agent(object):
 		self.pms = flags
 
 		if self.pms.save_model:
-			self.saver = tf.train.Saver(max_to_keep = 2)
+			self.saver = tf.train.Saver(max_to_keep = 2) if saver is None else saver
 	def learn(self):
 		raise NotImplementedError
 
