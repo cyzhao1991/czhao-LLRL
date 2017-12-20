@@ -75,17 +75,22 @@ class TRPOagent(Agent):
 		path = dict(observations = np.array(observations), actions = np.array(actions), rewards = np.array(rewards), actor_infos = actor_infos)
 		return path
 
-	def get_paths(self, num_of_paths = None):
+	def get_paths(self, num_of_paths = None, prefix = None, verbose = True):
 		if num_of_paths is None:
 			num_of_paths = self.pms.num_of_paths
 		paths = []
 		t = time.time()
-		print('Gathering Samples')
+		if verbose:
+			print(prefix+'Gathering Samples')
+		
 		for i in range(num_of_paths):
 			paths.append(self.get_single_path())
-			sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i, time.time()-t))
-			sys.stdout.flush()
-		print('%i paths sampled. Total time used: %f.'%(num_of_paths, time.time()-t))
+			if verbose:
+				sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i, time.time()-t))
+				sys.stdout.flush()
+		
+		if verbose:
+			print('%i paths sampled. Total time used: %f.'%(num_of_paths, time.time()-t))
 		return paths
 
 

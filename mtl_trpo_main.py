@@ -36,6 +36,7 @@ env_paras_list = [(g, mc, mp) for g in gravity_list for mc in mass_cart for mp i
 env_list = []
 [env_list.append(CartPoleEnv(g, mc, mp)) for g,mc,mp in env_paras_list]
 env = env_list[0]
+
 with tf.device('/gpu:%i'%(gpu_num)):
 	pms = Paras_base().pms
 	# print(pms.max_iter)
@@ -71,7 +72,7 @@ with tf.device('/gpu:%i'%(gpu_num)):
 			final_layer_collection.append( Net(sess, pms.obs_shape, pms.action_shape, [], name = tmp_name) )
 			final_layer_collection[t].weights = tf.Variable( tf.truncated_normal([25, pms.action_shape], stddev = 1.), name = 'theta_%i'%(-1))
 			final_layer_collection[t].input = actor_mid_net.input
-			final_layer_collection[t].context_input = weight_net.input
+			final_layer_collection[t].context = weight_net.input
 			final_layer_collection[t].output = tf.matmul( actor_mid_net.output, final_layer_collection[t].weights )
 			actor_collection.append( GaussianActor(final_layer_collection[t], sess, pms) )
 

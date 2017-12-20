@@ -11,7 +11,8 @@ class Actor(object):
 
 		self.input_ph = self.net.input
 		self.output_net = self.net.output
-
+		if self.pms.with_context:
+			self.context_ph = self.net.context
 		self.var_list = []
 
 	def get_action(self, inputs):
@@ -36,7 +37,7 @@ class GaussianActor(Actor):
 		if self.pms.with_context:
 			feed_dict = {self.input_ph: inputs, self.net.context_input: contexts}
 		else:
-			feed_dict = {self.input_ph: inputs}
+			feed_dict = {self.input_ph: i nputs}
 		a_mean, a_std, a_logstd = self.sess.run([self.output_net, self.action_std, self.action_logstd], feed_dict = feed_dict)
 		a_mean, a_std, a_logstd = map(np.squeeze, [a_mean, a_std, a_logstd])
 		# a_mean = np.tanh(a_mean) * self.pms.max_action
