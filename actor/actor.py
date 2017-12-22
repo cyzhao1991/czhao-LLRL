@@ -28,7 +28,7 @@ class GaussianActor(Actor):
 			self.action_std = tf.exp(self.action_logstd)
 			self.action_std = tf.maximum(self.action_std, self.pms.min_std)
 			self.action_std = tf.minimum(self.action_std, self.pms.max_std)
-		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.pms.name_scope)]
+		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.net.name)]
 
 	def get_action(self, inputs, contexts = None):
 
@@ -37,7 +37,7 @@ class GaussianActor(Actor):
 		if self.pms.with_context:
 			feed_dict = {self.input_ph: inputs, self.net.context_input: contexts}
 		else:
-			feed_dict = {self.input_ph: i nputs}
+			feed_dict = {self.input_ph: inputs}
 		a_mean, a_std, a_logstd = self.sess.run([self.output_net, self.action_std, self.action_logstd], feed_dict = feed_dict)
 		a_mean, a_std, a_logstd = map(np.squeeze, [a_mean, a_std, a_logstd])
 		# a_mean = np.tanh(a_mean) * self.pms.max_action
@@ -46,3 +46,18 @@ class GaussianActor(Actor):
 		else:
 			action = a_mean
 		return action, dict(mean = a_mean, std = a_std,logstd = a_logstd)
+
+class DeterministicActor(Actor):
+
+	def __init__(self, net, sess, pms):
+		super(DeterministicActor, self).__init__(net, sess, pms)
+		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.net.name + '/')]
+
+	def get_action(self, inputs):
+		inputs = inputs[np.newaxis,:] if len(inputs.shape)<2 else inputs
+		if self.pms.with_context:
+			feed_dict = {self.input_ph: inputs, self.net.context_input: contexts}
+		else:
+			feed_dict = {self.input_ph: inputs}
+		action = self.sess.run([self.output_net], feed_dict = feed_dict)
+		return np.squeeze(action)

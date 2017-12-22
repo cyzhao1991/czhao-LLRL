@@ -87,17 +87,17 @@ class CartPoleEnv(gym.Env):
 
 	def enable_gravity(self, on = True):
 		if on:
-			self.world.setGravity((0,-gravity,0))
+			self.world.setGravity((0,-self.gravity,0))
 		else:
 			self.world.setGravity((0,0,0))
 
 	def _step(self, action):
 		# assert self.action_space.contains(action), "action %r (%s) invalid"%(action, type(action))
-		self.j1.addForce(action)
+		self.j1.addForce(action[0])
 		self.j2.addTorque(0.)
 		self.world.step(self.dt)
 		state = self._get_obs()
-		costs = self.cost_function(state, action)
+		costs = self.cost_function(state, action[0])
 		done = self.if_done(state)
 		return state, -costs, done, {}
 
