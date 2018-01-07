@@ -104,13 +104,13 @@ s_weights_across_task = []
 
 for _ in range(2):
 	data_sets = []
-	ys = np.concatenate( [ys[0][:5000], ys[1][5000:10000], ys[2][10000:] ], axis = 0)
+	yss = np.concatenate( [ys[0][:5000], ys[1][5000:10000], ys[2][10000:] ], axis = 0)
 	start = 0
 	end = 5000
 	for _ in range(3):
 		
 		for i in range(10):
-			data_sets.append(data_split(xs[start:end], ys[start:end], 150, 350))
+			data_sets.append(data_split(xs[start:end], yss[start:end], 150, 350))
 			# data_sets.append(data_split(xs[5000:10000], ys[5000:10000], 150, 350))
 			# data_sets.append(data_split(xs[10000:], ys[10000:], 150, 350))
 		start += 5000
@@ -227,10 +227,10 @@ plt.fill_between(x_axis, test_mu - test_std, test_mu + test_std, facecolor = '#f
 plt.savefig(filename + 'mtl_test_losses.eps', rasterized = True)
 
 plt.figure('nums_of_valid_modules')
-plt.plot(x_axis, np.mean(nums_of_valid_modules, axis = 0), 'r')
+plt.plot(x_axis, np.mean(num_of_valid_modules_across_task, axis = 0), 'r')
 plt.savefig(filename + 'mtl_valid_nums.eps', rasterized = True)
 plt.figure('nums_of_invalid_modules')
-plt.plot(x_axis, np.mean(nums_of_invalid_modules, axis = 0), 'r')
+plt.plot(x_axis, np.mean(num_of_invalid_modules_across_task, axis = 0), 'r')
 plt.savefig(filename + 'mtl_invalid_nums.eps', rasterized = True)
 
 
