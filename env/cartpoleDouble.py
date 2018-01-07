@@ -24,23 +24,15 @@ class CartPoleDoubleEnv(gym.Env):
 		body.setPosition(pos)
 		M = ode.Mass()
 		M.setCylinderTotal(mass, 2, size[1], size[0])
-		# M.translate( (0., size[0]/2, 0.) )
 		M.translate( (0, size[0]/2, 0.) )
 
 		M.setParameters(M.mass, M.c[0], 0, M.c[2], M.I[0][0], M.I[1][1],M.I[2][2], M.I[0][1], M.I[0][2], M.I[1][2]) #setParameters(mass, cgx, cgy, cgz, I11, I22, I33, I12, I13, I23)
 		body.setMass(M)
 
-	# def create_ee(self, body, pos, mass, radius):
-	# 	body.setPosition(pos)
-	# 	M = ode.Mass()
-	# 	M.setCyliderTotal(mass, 1., size[0], size[1])
-	# 	M.translate((.5, 0., 0.))
-	# 	M.setParameters((M.mass, 0, M.c[1], M.c[2], M.I[0][0], M.I[1][1],M.I[2][2], M.I[0][1], M.I[0][2], M.I[1][2])) #setParameters(mass, cgx, cgy, cgz, I11, I22, I33, I12, I13, I23) 
-	# 	body.setMass(M)
-
-	def __init__(self, gravity = 9.8, mass = 1.0, tau = 0.02, size_box = (0.5, 0.3), size_pole = (1.0, .1)):
+	def __init__(self, gravity = 9.8, mass_cart = 1.0, mass_pole= 1.0, tau = 0.02, size_box = (0.5, 0.3), size_pole = (1.0, .1)):
 		self.gravity = gravity
-		self.mass = mass
+		self.mass_pole = mass_pole
+		self.mass_cart = mass_cart
 		self.dt = tau
 		self.viewer = None
 		self.viewerSize = 500
@@ -61,9 +53,9 @@ class CartPoleDoubleEnv(gym.Env):
 		self.body2 = ode.Body(self.world)
 		self.body3 = ode.Body(self.world)
 
-		self.create_basebox(self.body1, (0.,0.,0.), self.mass, size_box)
-		self.create_link(self.body2, (0.,size_pole[0]/2,0.), self.mass, size_pole)
-		self.create_link(self.body3, (0.,size_pole[0]+size_pole[0]/2,0.), self.mass, size_pole)
+		self.create_basebox(self.body1, (0.,0.,0.), self.mass_cart, size_box)
+		self.create_link(self.body2, (0.,size_pole[0]/2,0.), self.mass_pole, size_pole)
+		self.create_link(self.body3, (0.,size_pole[0]+size_pole[0]/2,0.), self.mass_pole, size_pole)
 
 		self.space = ode.Space()
 
@@ -71,18 +63,24 @@ class CartPoleDoubleEnv(gym.Env):
 		self.j1.attach(self.body1, ode.environment)
 		self.j1.setAxis( (1, 0, 0) )
 		self.j1.setFeedback(1)
+		self.j1.setParam(ode.ParamLoStop, -10)
+		self.j1.setParam(ode.ParamHiStop, 10)
 
 		self.j2 = ode.HingeJoint(self.world)
 		self.j2.attach(self.body1, self.body2)
 		self.j2.setAnchor( (0., 0. ,0.) )
 		self.j2.setAxis ( (0, 0, -1) )
 		self.j2.setFeedback(1)
+		self.j2.setParam(ode.ParamLoStop, -np.pi)
+		self.j2.setParam(ode.ParamHiStop, np.pi)
 
 		self.j3 = ode.HingeJoint(self.world)
 		self.j3.attach(self.body2, self.body3)
 		self.j3.setAnchor( (0., size_pole[0] ,0.) )
 		self.j3.setAxis ( (0, 0, -1) )
 		self.j3.setFeedback(1)
+		self.j3.setParam(ode.ParamLoStop, -np.pi)
+		self.j3.setParam(ode.ParamHiStop, np.pi)
 
 	def _seed(self, seed = None):
 		self.np_random, seed = seeding.np_random(seed)
@@ -90,12 +88,11 @@ class CartPoleDoubleEnv(gym.Env):
 
 	def enable_gravity(self, on = True):
 		if on:
-			self.world.setGravity((0,-9.81,0))
+			self.world.setGravity((0,-self.gravity,0))
 		else:
 			self.world.setGravity((0,0,0))
 
 	def _step(self, action):
-		# assert self.action_space.contains(action), "action %r (%s) invalid"%(action, type(action))
 		self.j1.addForce(action)
 		self.j2.addTorque(0.)
 		self.j3.addTorque(0.)
@@ -106,8 +103,8 @@ class CartPoleDoubleEnv(gym.Env):
 		return state, -costs, done, {}
 
 	def _reset(self):
-		ode.CloseODE()
-		self.__init__()
+		del self.world
+		self.__init__(self.gravity, self.mass_cart, self.mass_pole, self.dt, self.size_box, self.size_pole )
 		return _get_obs()
 
 	def _get_obs(self):
@@ -183,9 +180,6 @@ class CartPoleDoubleEnv(gym.Env):
 		self.pole_trans2.set_rotation(state[4])
 
 		return self.viewer.render(return_rgb_array = mode=='rgb_array')
-
-			# base = rendering.make_capsule(self.size_box[0], self.size_box[1])
-			# base.set_color(.8,.3,.3)
 
 	def cost_function(self, state, action):
 		x, xdot, th, thdot, th2, th2dot = state

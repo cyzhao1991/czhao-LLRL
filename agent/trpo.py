@@ -10,8 +10,9 @@ from agent import Agent
 class TRPOagent(Agent):
 
 	def __init__(self, env, actor, baseline, session, flags, saver = None):
-		super(TRPOagent, self).__init__(env, actor, baseline, session, flags, saver)
-
+		super(TRPOagent, self).__init__(env, session, flags, saver)
+		self.actor = actor
+		self.baseline = baseline
 		self.init_vars()
 
 		print('Building Network')
@@ -62,6 +63,7 @@ class TRPOagent(Agent):
 
 		for _ in range(self.pms.max_time_step):
 			action, actor_info = self.actor.get_action(state)
+			action = [action] if len(np.shape(action)) == 0 else action
 			next_state, reward, terminal, _ = self.env.step(action)
 			observations.append(state)
 			actions.append(action)
@@ -75,17 +77,22 @@ class TRPOagent(Agent):
 		path = dict(observations = np.array(observations), actions = np.array(actions), rewards = np.array(rewards), actor_infos = actor_infos)
 		return path
 
-	def get_paths(self, num_of_paths = None):
+	def get_paths(self, num_of_paths = None, prefix = '', verbose = True):
 		if num_of_paths is None:
 			num_of_paths = self.pms.num_of_paths
 		paths = []
 		t = time.time()
-		print('Gathering Samples')
+		if verbose:
+			print(prefix+'Gathering Samples')
+		
 		for i in range(num_of_paths):
 			paths.append(self.get_single_path())
-			sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i, time.time()-t))
-			sys.stdout.flush()
-		print('%i paths sampled. Total time used: %f.'%(num_of_paths, time.time()-t))
+			if verbose:
+				sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i, time.time()-t))
+				sys.stdout.flush()
+		
+		if verbose:
+			print('%i paths sampled. Total time used: %f.'%(num_of_paths, time.time()-t))
 		return paths
 
 
@@ -149,7 +156,7 @@ class TRPOagent(Agent):
 
 			feed_dict = {self.obs: obs_n,
 						 self.advant: adv_n,
-						 self.action: act_n[:,np.newaxis],
+						 self.action: act_n,
 						 self.old_dist_mean: act_dis_mean_n[:,np.newaxis],
 						 self.old_dist_logstd: act_dis_logstd_n[:,np.newaxis]
 						 }

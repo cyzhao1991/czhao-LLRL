@@ -8,10 +8,8 @@ from utils.utils import *
 
 class Agent(object):
 
-	def __init__(self, env, actor, baseline, session, flags, saver = None):
+	def __init__(self, env, session, flags, saver = None):
 		self.env = env
-		self.actor = actor
-		self.baseline = baseline
 		self.sess = session
 		self.pms = flags
 

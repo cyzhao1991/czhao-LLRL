@@ -13,8 +13,8 @@ class ReplayBuffer(object):
 		if self.seed is not None:
 			random.seed(self.seed)
 
-	def add_sample(self, state, action, reward, next_state, context):#, time, error):
-		self.buffer.append( (state, action, reward, next_state, context) )#, time, error) )
+	def add_sample(self, state, action, reward, next_state, terminal):#, time, error):
+		self.buffer.append( (state, action, reward, next_state, terminal) )#, time, error) )
 		self.count += 1
 
 	def rand_sample(self, batch_size = 64, seed = None, method = 'rank'):
@@ -49,8 +49,8 @@ class ReplayBuffer(object):
 		r_batch = np.reshape( np.array([_[2] for _ in sample_batch]), (-1, 1))
 		s2_batch = np.array([_[3] for _ in sample_batch])
 		# c_batch = np.reshape( np.array([_[4] for _ in sample_batch]), (-1, 1))
-		c_batch = np.array([_[4] for _ in sample_batch])
-		return s_batch, a_batch, r_batch, s2_batch, c_batch#, w_batch, indices
+		t_batch = np.reshape( np.array([_[4] for _ in sample_batch]), (-1, 1))
+		return s_batch, a_batch, r_batch, s2_batch, t_batch#, w_batch, indices
 
 	def update_batch(self, batch_indices, new_error):
 		for index, error in zip(batch_indices, new_error):
