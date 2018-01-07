@@ -2,6 +2,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from model.net import * 
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import shelve
 
@@ -74,7 +76,7 @@ for key in saving_var_list:
         print('ERROR shelving: {0}'.format(key))
 my_shelf.close()
 
-x_axis = np.arange(10000)
+x_axis = np.arange(100)
 train_mu = np.mean(train_losses_across_task, axis = 0)
 train_std = np.std(train_losses_across_task, axis = 0)
 test_mu  = np.mean(test_losses_across_task,  axis = 0)
