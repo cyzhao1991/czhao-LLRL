@@ -26,7 +26,7 @@ train_losses_across_task = []
 test_losses_across_task = []
 learned_models = []
 
-for _ in range(10):
+for _ in range(2):
 	temp_int = np.random.randint(3)
 	train_set, test_set = data_split( xs, ys[temp_int], 150, 350 )
 
@@ -48,10 +48,10 @@ for _ in range(10):
 
 	train_losses = []
 	test_losses = []
-	for i in range(100):
+	for i in range(10):
 
 		_, train_loss= sess.run([train_op, total_loss], feed_dict = {input_ph: train_set['xs'], label:train_set['ys']})
-		test_loss = sess.run(loss, feed_dict = {input_ph: test_set['xs'], label: test_set['ys']})
+		test_loss = sess.run(loss, feed_dict = {input_ph: test_set['xs'], label: test_set['ys']}) / len(test_set['xs'])
 		# print(train_loss)
 		# print(test_loss)
 		train_losses.append(train_loss)
@@ -81,6 +81,7 @@ train_mu = np.mean(train_losses_across_task, axis = 0)
 train_std = np.std(train_losses_across_task, axis = 0)
 test_mu  = np.mean(test_losses_across_task,  axis = 0)
 test_std  = np.std(test_losses_across_task,  axis = 0)
+plt.set_rasterization_zorder(0) 
 plt.figure('train_losses')
 plt.plot(x_axis, train_mu, 'r')
 plt.fill_between(x_axis, train_mu - train_std, train_mu + train_std, facecolor = 'r', alpha = 0.6, rasterized = True)
