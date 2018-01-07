@@ -48,7 +48,7 @@ for _ in range(2):
 
 	train_losses = []
 	test_losses = []
-	for i in range(10):
+	for i in range(100):
 
 		_, train_loss= sess.run([train_op, total_loss], feed_dict = {input_ph: train_set['xs'], label:train_set['ys']})
 		test_loss = sess.run(loss, feed_dict = {input_ph: test_set['xs'], label: test_set['ys']}) / len(test_set['xs'])
