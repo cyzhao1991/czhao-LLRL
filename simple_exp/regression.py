@@ -102,7 +102,7 @@ num_of_valid_modules_across_task = []
 num_of_invalid_modules_across_task = []
 s_weights_across_task = []
 
-for _ in range(2):
+for _ in range(30):
 	data_sets = []
 	yss = np.concatenate( [ys[0][:5000], ys[1][5000:10000], ys[2][10000:] ], axis = 0)
 	start = 0
@@ -175,11 +175,11 @@ for _ in range(2):
 	sparse_losses = []
 	nums_of_valid_modules = []
 	nums_of_invalid_modules = []
-	for i in range(100):
+	for i in range(10000):
 		train_feed_dict = {input_ph: all_training_set_x, label:all_training_set_y, context_ph:all_training_set_t}
 		test_feed_dict = {input_ph: all_testing_set_x, label: all_testing_set_y, context_ph: all_testing_set_t}
 		_, train_loss, sparse_loss = sess.run([train_op, total_loss, l1_loss], feed_dict = train_feed_dict)
-		test_loss = sess.run(loss, feed_dict = test_feed_dict)
+		test_loss = sess.run(loss, feed_dict = test_feed_dict) / len(all_testing_set_x)
 		weights = sess.run([v for v in var_list if 'weight_net' in v.name])
 		invalid_modules = np.count_nonzero( np.abs(weights[0]) < .01)
 		valid_modules = np.count_nonzero( np.abs(weights[0]) > .1 )
@@ -212,7 +212,7 @@ for key in saving_var_list:
         print('ERROR shelving: {0}'.format(key))
 my_shelf.close()
 
-x_axis = np.arange(100)
+x_axis = np.arange(10000)
 train_mu = np.mean(train_losses_across_task, axis = 0)
 train_std = np.std(train_losses_across_task, axis = 0)
 test_mu  = np.mean(test_losses_across_task,  axis = 0)
