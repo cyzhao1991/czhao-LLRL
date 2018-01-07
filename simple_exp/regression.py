@@ -26,7 +26,7 @@ train_losses_across_task = []
 test_losses_across_task = []
 learned_models = []
 
-for _ in range(2):
+for _ in range(100):
 	temp_int = np.random.randint(3)
 	train_set, test_set = data_split( xs, ys[temp_int], 150, 350 )
 
@@ -48,7 +48,7 @@ for _ in range(2):
 
 	train_losses = []
 	test_losses = []
-	for i in range(100):
+	for i in range(10000):
 
 		_, train_loss= sess.run([train_op, total_loss], feed_dict = {input_ph: train_set['xs'], label:train_set['ys']})
 		test_loss = sess.run(loss, feed_dict = {input_ph: test_set['xs'], label: test_set['ys']}) / len(test_set['xs'])
