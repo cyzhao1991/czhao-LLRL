@@ -17,4 +17,3 @@ env_list = []
 for i in some_list[tmp_num]:
 	tf.reset_default_graph()
 	main(tmp_num, i, env_list[i])
-

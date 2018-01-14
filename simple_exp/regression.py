@@ -10,7 +10,7 @@ import shelve
 np.random.seed(2626)
 xs = np.random.normal(0., 1., [15000, 20])
 thetas = np.random.normal(0., 1., [3, 21]) + 1.
-ys = [np.dot( np.append(xs, np.ones([15000,1]), axis = 1), th ) for th in thetas]
+ys = [np.dot( np.append(xs, np.ones([15000,1]), axis = 1), th ) + np.random.normal(0., 0.2, [15000]) for th in thetas]
 ys = [y[:, np.newaxis] for y in ys]
 def data_split(xs, ys, training_size, testing_size):
 	index = np.random.permutation( len(ys) )
