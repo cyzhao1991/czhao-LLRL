@@ -16,8 +16,8 @@ from utils.paras import Paras_base
 
 def main(gpu_num, exp_num, env = None):
 
-	dir_name = '/home/chenyang/Documents/coding/Data/checkpoint/'
-	# dir_name = '/disk/scratch/chenyang/Data/trpo_mtl/exp%i/'%(exp_num)
+	# dir_name = '/home/chenyang/Documents/coding/Data/checkpoint/'
+	dir_name = '/disk/scratch/chenyang/Data/trpo_mtl/exp%i/'%(exp_num)
 	if not os.path.isdir(dir_name):
 		os.mkdir(dir_name)
 
@@ -30,6 +30,7 @@ def main(gpu_num, exp_num, env = None):
 	env_paras_list = [(g, mc, mp) for g in gravity_list for mc in mass_cart for mp in mass_pole]
 	env_list = []
 	[env_list.append(CartPoleEnv(g, mc, mp)) for g,mc,mp in env_paras_list]
+	env_list = env_list[:2]
 	num_of_envs = len(env_list)
 
 	with tf.device('/gpu:%i'%(gpu_num)):

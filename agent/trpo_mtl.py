@@ -66,7 +66,7 @@ class TRPO_MTLagent(TRPOagent):
 		all_sample_data = []
 		for paths, task_context in zip(all_paths, self.task_context_mat):
 			all_sample_data.append(self.process_paths(paths))
-			all_sample_data[-1]['contexts'] = np.tile(task_context, (all_sample_data[-1]['total_time_step'], 1))
+			all_sample_data[-1]['contexts'] = np.array(np.tile(task_context, (all_sample_data[-1]['total_time_step'], 1)))
 		return all_sample_data
 
 	def train_paths(self, all_paths):
@@ -83,7 +83,7 @@ class TRPO_MTLagent(TRPOagent):
 			adv_source = sample_data['advantages']
 			n_samples = sample_data['total_time_step']
 			actor_info_source = sample_data['actor_infos']
-			con_source = sample_data
+			# con_source = sample_data
 			episode_rewards = np.array([np.sum(path['rewards']) for path in paths])
 			train_number = int(1./self.pms.subsample_factor)
 			step_gradients = []
