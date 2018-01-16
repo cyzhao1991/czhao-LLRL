@@ -172,6 +172,7 @@ class TRPO_MTLagent(TRPOagent):
 			self.sess.run(set_from_flat(self.actor.var_list, np.mean(theta, axis = 0)))
 			train_time = time.time() - t
 			s_vector = self.sess.run(self.weight_paras)
+			print(s_vector)
 			for k, v in stats.iteritems():
 				print("%-20s: %15.5f"%(k,np.mean(v)))
 

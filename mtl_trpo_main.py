@@ -27,7 +27,7 @@ if not os.path.isdir(dir_name):
 	os.mkdir(dir_name)
 
 with open('log.txt', 'a') as text_file:
-	text_file.write('gpu %i exp %i started.\n'%(gpu_num, exp_num))
+	text_file.write('mtl gpu %i exp %i started.\n'%(gpu_num, exp_num))
 
 gravity_list = [0., 4.9, 9.8]
 mass_cart = [0.1, 0.5, 1.0]
