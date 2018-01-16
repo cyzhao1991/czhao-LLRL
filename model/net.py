@@ -68,7 +68,6 @@ class Modular_Fcnn(Net):
 	def __init__(self, sess, input_dim, output_dim, layer_dim, module_num, name = None, **kwargs):
 		super(Modular_Fcnn, self).__init__(sess, input_dim, output_dim, layer_dim, name, **kwargs)
 		self.module_num = module_num
-
 		with tf.name_scope(self.name):
 			self.input = kwargs.get('input_tf', tf.placeholder(tf.float32, [None, self.input_dim], name = 'input'))
 			self.s_weights = kwargs.get('s_weights', [])
@@ -80,6 +79,9 @@ class Modular_Fcnn(Net):
 
 	def build(self, input_tf, s_weights, name):
 		split_s_weights = [tf.split(s, n, axis = 1) for s,n in zip(self.s_weights, self.module_num)]
+		# if len(self.module_num) < len(self.layer_dim) + 1:
+		# 	split_s_weights += [[1]] * (len(self.layer_dim) - len(self.module_num) + 1)
+		# 	self.module_num += [1] * (len(self.layer_dim) - len(self.module_num) + 1)
 		with tf.name_scope(name):
 			net = [input_tf]
 			module_net = []

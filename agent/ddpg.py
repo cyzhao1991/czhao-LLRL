@@ -56,7 +56,7 @@ class DDPGagent(Agent):
 	def step(self, state):
 		action = self.actor.get_action(state)
 		action = [action] if len(np.shape(action)) == 0 else action
-		action = np.array(action) + self.noise.noise()
+		action = np.array(action) + self.noise.noise() 
 		next_state, reward, terminal, _ = self.env.step(action)
 		self.replay_buffer.add_sample(state, action, reward, next_state, terminal)
 		if self.pms.render:

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
@@ -22,20 +23,22 @@ class GaussianActor(Actor):
 
 	def __init__(self, net, sess, pms):
 		super(GaussianActor, self).__init__(net, sess, pms)
-		with tf.name_scope(self.net.name):
+		with tf.name_scope(self.pms.name_scope):
 			self.action_logstd_param = tf.Variable( (0.01*np.random.randn(1, self.net.output_dim)).astype(np.float32) ,name = 'weights_logstd')
 			self.action_logstd = tf.tile(self.action_logstd_param, tf.stack( [tf.shape(self.output_net)[0] ,1] ) )
 			self.action_std = tf.exp(self.action_logstd)
 			self.action_std = tf.maximum(self.action_std, self.pms.min_std)
 			self.action_std = tf.minimum(self.action_std, self.pms.max_std)
-		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.net.name)]
-
+		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.pms.name_scope)]
 	def get_action(self, inputs, contexts = None):
 
 		if len(inputs.shape) < 2:
 			inputs = inputs[np.newaxis,:]
+		if contexts is not None and len(contexts.shape) < 2:
+			contexts = contexts[np.newaxis, :]
+
 		if self.pms.with_context:
-			feed_dict = {self.input_ph: inputs, self.net.context_input: contexts}
+			feed_dict = {self.input_ph: inputs, self.context_ph: contexts}
 		else:
 			feed_dict = {self.input_ph: inputs}
 		a_mean, a_std, a_logstd = self.sess.run([self.output_net, self.action_std, self.action_logstd], feed_dict = feed_dict)
@@ -56,7 +59,7 @@ class DeterministicActor(Actor):
 	def get_action(self, inputs):
 		inputs = inputs[np.newaxis,:] if len(inputs.shape)<2 else inputs
 		if self.pms.with_context:
-			feed_dict = {self.input_ph: inputs, self.net.context_input: contexts}
+			feed_dict = {self.input_ph: inputs, self.context_ph: contexts}
 		else:
 			feed_dict = {self.input_ph: inputs}
 		action = self.sess.run([self.output_net], feed_dict = feed_dict)

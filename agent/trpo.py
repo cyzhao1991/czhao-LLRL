@@ -21,6 +21,8 @@ class TRPOagent(Agent):
 
 		with tf.name_scope(self.pms.name_scope):
 			self.obs = self.actor.input_ph
+			if self.pms.with_context:
+				self.contexts = self.actor.context_ph
 			self.advant = tf.placeholder(tf.float32, [None], name = 'advantages')
 			self.action = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'action')
 			self.old_dist_mean = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_mean')
