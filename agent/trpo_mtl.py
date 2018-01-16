@@ -59,7 +59,7 @@ class TRPO_MTLagent(TRPOagent):
 					sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i + env_index*num_of_paths, time.time()-t))
 					sys.stdout.flush()
 		if verbose:
-			print('%i paths sampled. Total time used: %f.'%(num_of_paths, time.time()-t))
+			print('%i paths sampled. Total time used: %f.'%(num_of_paths*len(self.env_list), time.time()-t))
 		return paths
 
 	def process_all_paths(self, all_paths):
@@ -143,7 +143,7 @@ class TRPO_MTLagent(TRPOagent):
 			average_return = avg_rtn,
 			total_time_step = t_t_step
 			)
-		return flat_theta_new, flat_theta_prev, stats
+		return updated_flat_theta, flat_theta_prev, stats
 
 
 	def learn(self):

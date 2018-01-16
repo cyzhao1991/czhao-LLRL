@@ -78,7 +78,7 @@ class Modular_Fcnn(Net):
 		self.output = self.build(self.input, self.s_weights, self.name)
 
 	def build(self, input_tf, s_weights, name):
-		split_s_weights = [tf.split(s, n, axis = 1) for s,n in zip(self.s_weights, self.module_num)]
+		# split_s_weights = [tf.split(s, n, axis = 1) for s,n in zip(self.s_weights, self.module_num)]
 		# if len(self.module_num) < len(self.layer_dim) + 1:
 		# 	split_s_weights += [[1]] * (len(self.layer_dim) - len(self.module_num) + 1)
 		# 	self.module_num += [1] * (len(self.layer_dim) - len(self.module_num) + 1)
@@ -109,8 +109,12 @@ class Modular_Fcnn(Net):
 					for j in range(self.module_num[i]):
 						module_weights[i].append( tf.Variable(tf.truncated_normal([dim_1, dim_2], stddev = 1.0), \
 							name = 'theta_layer%i_module%i'%(i, j)) )
-					module_net[i] = [tf.matmul(net[-1], module_weights[i][_]) * split_s_weights[i][_] for _ in range(self.module_num[i])]
-					net.append( self.activation_fns_call[i]( tf.reduce_sum(module_net[i], axis = 0) ) )
+					print(tf.stack(module_weights[i], axis = -1))
+					tmp_weights = tf.reduce_sum( tf.stack(module_weights[i], axis = -1) * self.s_weights[i]  , axis = -1)
+					# module_net[i] = [tf.matmul(net[-1], module_weights[i][_]) * split_s_weights[i][_] for _ in range(self.module_num[i])]
+					print(self.s_weights[i], tmp_weights)
+					net.append( self.activation_fns_call[i]( tf.matmul(net[i], tmp_weights) ) )
+				print(net[-1])
 			return net[-1]
 
 
