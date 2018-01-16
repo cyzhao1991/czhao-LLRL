@@ -69,14 +69,14 @@ class TRPO_MTLagent(TRPOagent):
 			all_sample_data[-1]['contexts'] = np.tile(task_context, (all_sample_data[-1]['total_time_step'], 1))
 		return all_sample_data
 
-	def train_paths(self, paths):
-		all_sample_data = self.process_all_paths(paths)
+	def train_paths(self, all_paths):
+		all_sample_data = self.process_all_paths(all_paths)
 		updated_flat_theta = []
 		s_loss = []
 		kl_div = []
 		avg_rtn = []
 		t_t_step = []
-		for sample_data in all_sample_data:
+		for sample_data, paths in zip(all_sample_data,all_paths):
 			obs_source = sample_data['observations']
 			con_source = sample_data['contexts']
 			act_source = sample_data['actions']
