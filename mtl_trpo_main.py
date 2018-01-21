@@ -3,16 +3,13 @@ import tensorflow as tf
 import numpy as np
 import scipy.signal
 import sys, time, os, gym, shelve, argparse, pdb
-# from utils.krylov import cg
-# from utils.utils import *
-# from agent.agent import Agent
 
-from actor.actor import GaussianActor
+from model.mtl_net import Mtl_Fcnn_Net
+from actor.mtl_actor import Mtl_Gaussian_Actor
+from utils.paras import Paras_base
 from agent.trpo_mtl import TRPO_MTLagent
 from baseline.baseline import BaselineZeros
 from env.cartpole import CartPoleEnv
-from model.net import *
-from utils.paras import Paras_base
 
 def main(gpu_num, exp_num, env = None):
 

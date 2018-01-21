@@ -62,7 +62,6 @@ class Fcnn(Net):
 			return net[-1]
 
 
-
 class Modular_Fcnn(Net):
 
 	def __init__(self, sess, input_dim, output_dim, layer_dim, module_num, name = None, **kwargs):
