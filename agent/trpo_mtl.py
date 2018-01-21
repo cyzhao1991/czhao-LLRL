@@ -78,15 +78,15 @@ class TRPO_MTLagent(Agent):
 		actions = []
 		rewards = []
 		actor_infos = []
-		state = self.env_list[task_index].reset()
+		state = self.env[task_index].reset()
 
 		if self.pms.render:
-			self.env_list[task_index].render()
+			self.env[task_index].render()
 
 		for _ in range(self.pms.max_time_step):
 			action, actor_info = self.actor.get_action(state, task_index)
 			action = [action] if len(np.shape(action)) == 0 else action
-			next_state, reward, terminal, _ = self.env_list[task_index].step(action)
+			next_state, reward, terminal, _ = self.env[task_index].step(action)
 			observations.append(state)
 			actions.append(action)
 			rewards.append(reward)
@@ -95,7 +95,7 @@ class TRPO_MTLagent(Agent):
 				break
 			state = next_state
 			if self.pms.render:
-				self.env_list[task_index].render()
+				self.env[task_index].render()
 		path = dict(observations = np.array(observations), actions = np.array(actions), rewards = np.array(rewards), actor_infos = actor_infos)
 		return path
 
@@ -109,12 +109,12 @@ class TRPO_MTLagent(Agent):
 		for task_index in range(self.num_of_tasks):
 			paths.append([])
 			for i in range(num_of_paths):
-				path[task_index].append(self.get_single_path( task_index ))
+				paths[task_index].append(self.get_single_path( task_index ))
 				if verbose:
-					sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i + env_index*num_of_paths, time.time()-t))
+					sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i + task_index*num_of_paths, time.time()-t))
 					sys.stdout.flush()
 		if verbose:
-			print('All paths sampled. Total sampled paths: %i. Total time usesd: %f.'%(num_of_paths * self.num_of_tasks), time.time() - t)
+			print('All paths sampled. Total sampled paths: %i. Total time usesd: %f.'%(num_of_paths * self.num_of_tasks, time.time() - t) )
 		return paths
 
 	def process_paths(self, paths):
@@ -239,8 +239,9 @@ class TRPO_MTLagent(Agent):
 		self.sess.run( [set_from_flat( task_var, theta[shared_var_num:] ) for task_var, theta in zip(self.task_var_list, updated_flat_theta)] )
 
 		for i, sample_data in enumerate(all_sample_data):
-			act_dis_mean_n = np.array(a_info['mean'] for a_info in sample_data['actor_infos'])
-			act_dis_logstd_n = np.array(a_info['logstd'] for a_info in sample_data['actor_infos'])
+			act_dis_mean_n = np.array([a_info['mean'] for a_info in sample_data['actor_infos']])
+			act_dis_logstd_n = np.array([a_info['logstd'] for a_info in sample_data['actor_infos']])
+			# print(act_dis_mean_n)
 			feed_dict = {self.obs: sample_data['observations'],
 						 self.advant: sample_data['advantages'],
 						 self.action: sample_data['actions'],

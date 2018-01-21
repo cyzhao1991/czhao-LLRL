@@ -2,7 +2,7 @@ from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import scipy.signal
-import sys, time, os, gym, shelve, argparse, pdb
+import sys, time, os, gym, shelve, argparse, pdb, random
 
 from model.mtl_net import Mtl_Fcnn_Net
 from actor.mtl_actor import Mtl_Gaussian_Actor
@@ -13,8 +13,8 @@ from env.cartpole import CartPoleEnv
 
 def main(gpu_num, exp_num, env = None):
 
-	dir_name = '/home/chenyang/Documents/coding/Data/checkpoint/'
-	# dir_name = '/disk/scratch/chenyang/Data/trpo_mtl/exp%i/'%(exp_num)
+	# dir_name = '/home/chenyang/Documents/coding/Data/checkpoint/'
+	dir_name = '/disk/scratch/chenyang/Data/trpo_mtl/exp%i/'%(exp_num)
 	if not os.path.isdir(dir_name):
 		os.mkdir(dir_name)
 
@@ -27,13 +27,14 @@ def main(gpu_num, exp_num, env = None):
 	env_paras_list = [(g, mc, mp) for g in gravity_list for mc in mass_cart for mp in mass_pole]
 	env_list = []
 	[env_list.append(CartPoleEnv(g, mc, mp)) for g,mc,mp in env_paras_list]
-	env_list = env_list[:20]
+	random.shuffle(env_list)
+	env_list = env_list[:10]
 	num_of_envs = len(env_list)
 
 	with tf.device('/gpu:%i'%(gpu_num)):
 		pms = Paras_base().pms
 		# print(pms.max_iter)
-		pms.save_model = False
+		pms.save_model = True
 		pms.save_dir = dir_name
 		# pms.save_dir = '/home/chenyang/Documents/coding/Data/checkpoint/'
 		action_size = env_list[0].action_space.shape[0]
@@ -43,7 +44,7 @@ def main(gpu_num, exp_num, env = None):
 		pms.action_shape = action_size
 		pms.max_action = max_action
 		pms.num_of_paths = 100
-		pms.with_context = True
+		pms.with_context = False
 		pms.name_scope = 'mtl_trpo'
 
 		config = tf.ConfigProto()
@@ -51,12 +52,12 @@ def main(gpu_num, exp_num, env = None):
 		config.gpu_options.allow_growth = True
 		sess = tf.Session(config = config)
 
-		weight_net = Fcnn(sess, num_of_envs, 30, [], name = pms.name_scope+'_weight', if_bias = [True])
-		w_out = weight_net.output
-		s_weights = [ tf.slice(w_out, [0, 0], [1, 10]), tf.slice(w_out, [0, 10], [1,10]), tf.slice(w_out, [0,20],[1,10]), weight_net.input[0] ]
-		actor_net = Modular_Fcnn(sess, pms.obs_shape,  pms.action_shape, [10,5,3], [10,10,10, num_of_envs], name = pms.name_scope+'_shared', \
-			if_bias = [False], activation_fns = ['tanh', 'tanh', 'tanh', 'None'], s_weights = s_weights)
-		actor_net.context = weight_net.input
+		# weight_net = Mtl_Fcnn_Net(sess, 30, [], name = pms.name_scope+'_weight', if_bias = [True])
+		# w_out = weight_net.output
+		# s_weights = [ tf.slice(w_out, [0, 0], [1, 10]), tf.slice(w_out, [0, 10], [1,10]), tf.slice(w_out, [0,20],[1,10]), weight_net.input[0] ]
+		actor_net = Mtl_Fcnn_Net(sess, pms.obs_shape,  pms.action_shape, [100,50,25], [10,10,10], num_of_envs, name = pms.name_scope, \
+			if_bias = [False], activation_fns = ['tanh', 'tanh', 'tanh', 'None'])
+		# actor_net.context = weight_net.input
 		# actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [False], activation_fns = ['tanh', 'tanh', 'None', 'None'])
 		# pdb.set_trace()
 		# final_layer_collection = []
@@ -70,12 +71,17 @@ def main(gpu_num, exp_num, env = None):
 		# 		final_layer_collection[t].context = weight_net.input
 		# 		final_layer_collection[t].output = tf.matmul( actor_mid_net.output, final_layer_collection[t].weights )
 		# 		actor_collection.append( GaussianActor(final_layer_collection[t], sess, pms) )
-		actor = GaussianActor(actor_net, sess, pms)
+		# actor = GaussianActor(actor_net, sess, pms)
 		# baseline = [BaselineZeros(sess, pms) for _ in env_list]
+		actor = Mtl_Gaussian_Actor(actor_net, sess, pms, num_of_envs)
 		baseline = BaselineZeros(sess, pms)
 		
-		learn_agent = TRPO_MTLagent(env_list, actor, baseline, sess, pms)
+		learn_agent = TRPO_MTLagent(env_list, actor, baseline, sess, pms, [None])
 
+	saver = tf.train.Saver()
+	learn_agent.saver = saver
+
+	with tf.device('/gpu:%i'%(gpu_num)):
 		sess.run(tf.global_variables_initializer())
 		saving_result = learn_agent.learn()
 	# filename = '/home/chenyang/Documents/coding/Data/checkpoint/shelve_result'
