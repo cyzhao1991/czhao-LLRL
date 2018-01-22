@@ -101,15 +101,43 @@ class TRPO_MTLagent(Agent):
 		return path
 
 	def get_paths(self, num_of_paths = None, prefix = '', verbose = True):
-		pool = Pool(process = 20)
+		pool = Pool(processes = 20)
 		if num_of_paths is None:
 			num_of_paths = self.pms.num_of_paths
 		paths = []
 		t = time.time()
 		if verbose:
 			print(prefix + 'Gathering Samples')
+
+		def get_single_path(in_arg):
+			env, actor, task_index, pms = in_arg
+			observations = []
+			actions = []
+			rewards = []
+			actor_infos = []
+			state = env.reset()
+
+			if pms.render:
+				env.render()
+
+			for _ in range(pms.max_time_step):
+				action, actor_info = actor.get_action(state, task_index)
+				action = [action] if len(np.shape(action)) == 0 else action
+				next_state, reward, terminal, _ = env.step(action)
+				observations.append(state)
+				actions.append(action)
+				rewards.append(reward)
+				actor_infos.append(actor_info)
+				if terminal:
+					break
+				state = next_state
+				if pms.render:
+					envrender()
+			path = dict(observations = np.array(observations), actions = np.array(actions), rewards = np.array(rewards), actor_infos = actor_infos)
+			return path
+
 		for task_index in range(self.num_of_tasks):
-			paths = pool.map(self.get_single_path, np.ones(num_of_paths) * task_index)
+			paths = pool.map(get_single_path, [[self.env[task_index], self.actor, task_index, self.pms]] * num_of_paths)
 			# paths.append([])
 			# for i in range(num_of_paths):
 
