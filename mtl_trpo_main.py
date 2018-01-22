@@ -78,7 +78,7 @@ def main(gpu_num, exp_num, env = None):
 		
 		learn_agent = TRPO_MTLagent(env_list, actor, baseline, sess, pms, [None])
 
-	saver = tf.train.Saver()
+	saver = tf.train.Saver(write_meta_graph = False)
 	learn_agent.saver = saver
 
 	with tf.device('/gpu:%i'%(gpu_num)):

@@ -6,6 +6,7 @@ import sys, time, os
 from utils.krylov import cg
 from utils.utils import *
 from agent import Agent
+from multiprocessing import Pool
 
 class TRPO_MTLagent(Agent):
 
@@ -100,6 +101,7 @@ class TRPO_MTLagent(Agent):
 		return path
 
 	def get_paths(self, num_of_paths = None, prefix = '', verbose = True):
+		pool = Pool(process = 20)
 		if num_of_paths is None:
 			num_of_paths = self.pms.num_of_paths
 		paths = []
@@ -107,12 +109,14 @@ class TRPO_MTLagent(Agent):
 		if verbose:
 			print(prefix + 'Gathering Samples')
 		for task_index in range(self.num_of_tasks):
-			paths.append([])
-			for i in range(num_of_paths):
-				paths[task_index].append(self.get_single_path( task_index ))
-				if verbose:
-					sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i + task_index*num_of_paths, time.time()-t))
-					sys.stdout.flush()
+			paths = pool.map(self.get_single_path, np.ones(num_of_paths) * task_index)
+			# paths.append([])
+			# for i in range(num_of_paths):
+
+			# 	paths[task_index].append(self.get_single_path( task_index ))
+			# 	if verbose:
+			# 		sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i + task_index*num_of_paths, time.time()-t))
+			# 		sys.stdout.flush()
 		if verbose:
 			print('All paths sampled. Total sampled paths: %i. Total time usesd: %f.'%(num_of_paths * self.num_of_tasks, time.time() - t) )
 		return paths
