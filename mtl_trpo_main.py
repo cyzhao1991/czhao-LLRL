@@ -25,10 +25,12 @@ def main(gpu_num, exp_num, env = None):
 	mass_cart = [0.1, 0.5, 1.0]
 	mass_pole = [0.1, 0.5, 1.0]
 	env_paras_list = [(g, mc, mp) for g in gravity_list for mc in mass_cart for mp in mass_pole]
+	random.shuffle(env_paras_list)
+	env_paras_list = env_paras_list[:10]
 	env_list = []
 	[env_list.append(CartPoleEnv(g, mc, mp)) for g,mc,mp in env_paras_list]
-	random.shuffle(env_list)
-	env_list = env_list[:10]
+	# random.shuffle(env_list)
+	# env_list = env_list[:10]
 	num_of_envs = len(env_list)
 
 	with tf.device('/gpu:%i'%(gpu_num)):
@@ -83,11 +85,15 @@ def main(gpu_num, exp_num, env = None):
 
 	with tf.device('/gpu:%i'%(gpu_num)):
 		sess.run(tf.global_variables_initializer())
+		tf.get_default_graph().finalize()
+
 		saving_result = learn_agent.learn()
 	# filename = '/home/chenyang/Documents/coding/Data/checkpoint/shelve_result'
 	filename = dir_name + 'shelve_result'
 	my_shelf = shelve.open(filename, 'n')
 	my_shelf['saving_result'] = saving_result
+	my_shelf['env_list'] = env_list
+	my_shelf['env_paras_list'] = env_paras_list
 	my_shelf.close()
 	with open('log.txt', 'a') as text_file:
 		text_file.write('mtl gpu %i exp %i finished.\n'%(gpu_num, exp_num))

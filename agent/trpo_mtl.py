@@ -20,10 +20,13 @@ class TRPO_MTLagent(Agent):
 		self.var_list = self.actor.var_list
 		self.shared_var_list = self.actor.shared_var_list
 		self.task_var_list = self.actor.task_var_list
+		self.shared_var_num = np.sum( self.sess.run([tf.size(v) for v in self.shared_var_list]) )
 
 		# self.shared_var_num = np.sum([])
 
 		self.init_vars()
+
+
 		print('Building Network')
 
 	def init_vars(self):
@@ -73,6 +76,11 @@ class TRPO_MTLagent(Agent):
 			self.fvp_task_list = [tf.gradients(tf.reduce_sum( flat_g * self.flat_tangent / batchsize), self.shared_var_list + task_var) for flat_g, task_var in zip(flat_grad_task_list, self.task_var_list)]
 			self.flat_fvp_task_list = map(flatten_var, self.fvp_task_list)
 
+			self.weights_to_set = tf.placeholder(tf.float32, [None], name = 'weights_to_set')
+			self.set_shared_from_flat = set_from_flat(self.shared_var_list, self.weights_to_set)
+			self.set_task_from_flat_list = [set_from_flat(task_var, self.weights_to_set) for task_var in self.task_var_list]
+			self.flatten_shared_var = flatten_var(self.shared_var_list)
+			self.flatten_task_var_list = [flatten_var( task_var ) for task_var in self.task_var_list]
 
 	def get_single_path(self, task_index):
 		observations = []
@@ -101,7 +109,7 @@ class TRPO_MTLagent(Agent):
 		return path
 
 	def get_paths(self, num_of_paths = None, prefix = '', verbose = True):
-		pool = Pool(processes = 20)
+		# pool = Pool(processes = 20)
 		if num_of_paths is None:
 			num_of_paths = self.pms.num_of_paths
 		paths = []
@@ -109,42 +117,42 @@ class TRPO_MTLagent(Agent):
 		if verbose:
 			print(prefix + 'Gathering Samples')
 
-		def get_single_path(in_arg):
-			env, actor, task_index, pms = in_arg
-			observations = []
-			actions = []
-			rewards = []
-			actor_infos = []
-			state = env.reset()
+		# def get_single_path(in_arg):
+		# 	env, actor, task_index, pms = in_arg
+		# 	observations = []
+		# 	actions = []
+		# 	rewards = []
+		# 	actor_infos = []
+		# 	state = env.reset()
 
-			if pms.render:
-				env.render()
+		# 	if pms.render:
+		# 		env.render()
 
-			for _ in range(pms.max_time_step):
-				action, actor_info = actor.get_action(state, task_index)
-				action = [action] if len(np.shape(action)) == 0 else action
-				next_state, reward, terminal, _ = env.step(action)
-				observations.append(state)
-				actions.append(action)
-				rewards.append(reward)
-				actor_infos.append(actor_info)
-				if terminal:
-					break
-				state = next_state
-				if pms.render:
-					envrender()
-			path = dict(observations = np.array(observations), actions = np.array(actions), rewards = np.array(rewards), actor_infos = actor_infos)
-			return path
+		# 	for _ in range(pms.max_time_step):
+		# 		action, actor_info = actor.get_action(state, task_index)
+		# 		action = [action] if len(np.shape(action)) == 0 else action
+		# 		next_state, reward, terminal, _ = env.step(action)
+		# 		observations.append(state)
+		# 		actions.append(action)
+		# 		rewards.append(reward)
+		# 		actor_infos.append(actor_info)
+		# 		if terminal:
+		# 			break
+		# 		state = next_state
+		# 		if pms.render:
+		# 			envrender()
+		# 	path = dict(observations = np.array(observations), actions = np.array(actions), rewards = np.array(rewards), actor_infos = actor_infos)
+		# 	return path
 
 		for task_index in range(self.num_of_tasks):
-			paths = pool.map(get_single_path, [[self.env[task_index], self.actor, task_index, self.pms]] * num_of_paths)
-			# paths.append([])
-			# for i in range(num_of_paths):
+			# paths = pool.map(get_single_path, [[self.env[task_index], self.actor, task_index, self.pms]] * num_of_paths)
+			paths.append([])
+			for i in range(num_of_paths):
 
-			# 	paths[task_index].append(self.get_single_path( task_index ))
-			# 	if verbose:
-			# 		sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i + task_index*num_of_paths, time.time()-t))
-			# 		sys.stdout.flush()
+				paths[task_index].append(self.get_single_path( task_index ))
+				if verbose:
+					sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i + task_index*num_of_paths, time.time()-t))
+					sys.stdout.flush()
 		if verbose:
 			print('All paths sampled. Total sampled paths: %i. Total time usesd: %f.'%(num_of_paths * self.num_of_tasks, time.time() - t) )
 		return paths
@@ -192,7 +200,6 @@ class TRPO_MTLagent(Agent):
 		avg_rtn = []
 		t_t_step = []
 		all_sample_data = []
-		shared_var_num = np.sum( self.sess.run([tf.size(v) for v in self.shared_var_list]) )
 
 		for task_i, paths in enumerate(all_paths):
 			sample_data = self.process_paths(paths)
@@ -210,8 +217,10 @@ class TRPO_MTLagent(Agent):
 			avg_rtn.append(np.mean(episode_rewards))
 			t_t_step.append(n_samples)
 
-			flat_theta_prev = self.sess.run(flatten_var(self.shared_var_list + self.task_var_list[task_i]))
-
+			flat_shared_theta_prev = self.sess.run( self.flatten_shared_var )
+			flat_task_theta_prev = self.sess.run( self.flatten_task_var_list[task_i] )
+			# flat_theta_prev = self.sess.run(flatten_var(self.shared_var_list + self.task_var_list[task_i]))
+			flat_theta_prev = np.concatenate([flat_shared_theta_prev, flat_task_theta_prev], axis = 0)
 			for iteration in range(train_number):
 				inds = np.random.choice(n_samples, int(np.floor(n_samples*self.pms.subsample_factor)), replace = False)
 				obs_n = obs_source[inds]
@@ -250,7 +259,9 @@ class TRPO_MTLagent(Agent):
 				fullstep_gradient = step_gradient / (inv_stepsize + 1e-8)
 
 				def loss_function(x, task_index):
-					self.sess.run(set_from_flat(self.shared_var_list+self.task_var_list[task_index], x))
+					# self.sess.run(set_from_flat(self.shared_var_list+self.task_var_list[task_index], x))
+					self.sess.run(self.set_shared_from_flat, feed_dict = {self.weights_to_set: x[:self.shared_var_num]})
+					self.sess.run(self.set_task_from_flat_list[task_index], feed_dict = {self.weights_to_set: x[self.shared_var_num:]})
 					surr_loss, kl = self.sess.run( [self.surr_loss_list[task_index], self.kl_list[task_index]], feed_dict = feed_dict )
 					return surr_loss, kl
 
@@ -260,15 +271,18 @@ class TRPO_MTLagent(Agent):
 				else:
 					flat_theta_new = flat_theta_prev + fullstep_gradient
 
-				self.sess.run( set_from_flat(self.shared_var_list+self.task_var_list[task_i], flat_theta_prev) )
+				# self.sess.run( set_from_flat(self.shared_var_list+self.task_var_list[task_i], flat_theta_prev) )
+				loss_fn(flat_theta_prev)
 				step_gradients.append(flat_theta_new - flat_theta_prev)
 
 			updated_flat_theta.append(flat_theta_new)
 			
 
-		new_shared_flat_theta = np.mean([v[:shared_var_num] for v in updated_flat_theta], axis = 0)
-		self.sess.run( set_from_flat(self.shared_var_list, new_shared_flat_theta) )
-		self.sess.run( [set_from_flat( task_var, theta[shared_var_num:] ) for task_var, theta in zip(self.task_var_list, updated_flat_theta)] )
+		new_shared_flat_theta = np.mean([v[:self.shared_var_num] for v in updated_flat_theta], axis = 0)
+		# self.sess.run( set_from_flat(self.shared_var_list, new_shared_flat_theta) )
+		self.sess.run( self.set_shared_from_flat, feed_dict = {self.weights_to_set: new_shared_flat_theta})
+		# self.sess.run( [set_from_flat( task_var, theta[self.shared_var_num:] ) for task_var, theta in zip(self.task_var_list, updated_flat_theta)] )
+		[self.sess.run(set_fn, feed_dict = {self.weights_to_set: theta[self.shared_var_num:]}) for set_fn, theta in zip(self.set_task_from_flat_list, updated_flat_theta)]
 
 		for i, sample_data in enumerate(all_sample_data):
 			act_dis_mean_n = np.array([a_info['mean'] for a_info in sample_data['actor_infos']])

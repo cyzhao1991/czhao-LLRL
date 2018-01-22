@@ -20,7 +20,7 @@ def set_from_flat(var_list, x):
 	for var in var_list:
 		shape = var.get_shape().as_list()
 		size = np.prod(shape)		
-		assigns.append(tf.assign(var, np.reshape(x[start:start + size], shape)))
+		assigns.append(tf.assign(var, tf.reshape(x[start:start + size], shape)))
 		start += size
 	return assigns
 
@@ -44,6 +44,5 @@ def linesearch(f, x, fullstep, max_backtracks, max_kl):
 		newfval, newkl = f(new_x)
 		if newfval < fval and newkl < max_kl:
 			# print('valid gradient')
-			print(newfval)
 			return new_x
 	return x
