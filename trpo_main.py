@@ -42,7 +42,7 @@ def main(gpu_num, exp_num, env = None, task_num = 0):
 		config.gpu_options.allow_growth = True
 		sess = tf.Session(config = config)
 
-		actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'None', 'None'])
+		actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'tanh', 'tanh'])
 		actor = GaussianActor(actor_net, sess, pms)
 		baseline = BaselineZeros(sess, pms)
 

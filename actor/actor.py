@@ -45,7 +45,7 @@ class GaussianActor(Actor):
 		a_mean, a_std, a_logstd = map(np.squeeze, [a_mean, a_std, a_logstd])
 		# a_mean = np.tanh(a_mean) * self.pms.max_action
 		if self.pms.train_flag:
-			action = np.random.normal( a_mean, a_std )
+			action = np.random.normal( a_mean, a_std ) 
 		else:
 			action = a_mean
 		return action, dict(mean = a_mean, std = a_std,logstd = a_logstd)

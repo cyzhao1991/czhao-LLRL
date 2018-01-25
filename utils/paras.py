@@ -18,7 +18,7 @@ class Paras_base(object):
 	flags.DEFINE_float('subsample_factor', 1.0, 'subsample factor while training')
 	flags.DEFINE_float('cg_damping', 0.001 ,'damping factor for conjugate gradient')
 	flags.DEFINE_float('max_kl', .1, 'maximum kl divergence per update')
-	flags.DEFINE_float('max_action', 1.0, 'maximum action')
+	flags.DEFINE_float('max_action', 10.0, 'maximum action')
 	flags.DEFINE_float('gae_lambda', 1.0, 'lambda factor for GAE')
 
 	flags.DEFINE_boolean('render', False, 'whether to render')
