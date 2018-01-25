@@ -71,7 +71,7 @@ class TRPOagent(Agent):
 
 		for _ in range(self.pms.max_time_step):
 			action, actor_info = self.actor.get_action(state)
-			action = [action] if len(np.shape(action)) == 0 else action
+			action = np.array([action]) if len(np.shape(action)) == 0 else np.array(action)
 			next_state, reward, terminal, _ = self.env.step(self.pms.max_action * action)
 			observations.append(state)
 			actions.append(action)
