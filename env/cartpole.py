@@ -93,7 +93,7 @@ class CartPoleEnv(gym.Env):
 
 	def _step(self, action):
 		# assert self.action_space.contains(action), "action %r (%s) invalid"%(action, type(action))
-		self.j1.addForce(action[0] + random.random()*2. - 1.)
+		self.j1.addForce(action[0] + random.random()*.4 - .2)
 		self.j2.addTorque(0.)
 		self.world.step(self.dt)
 		state = self._get_obs()
