@@ -13,9 +13,12 @@ class TRPOagent(Agent):
 		super(TRPOagent, self).__init__(env, session, flags, saver)
 		self.actor = actor
 		self.baseline = baseline
+		self.var_list = self.actor.var_list
+
 		self.init_vars()
 
 		print('Building Network')
+
 
 	def init_vars(self):
 
@@ -48,6 +51,9 @@ class TRPOagent(Agent):
 			self.fvp = tf.gradients(tf.reduce_sum(flat_grads * self.flat_tangent), self.actor.var_list)
 			self.flat_fvp = flatten_var(self.fvp)
 
+			self.weights_to_set = tf.placeholder(tf.float32, [None], name = 'weights_to_set')
+			self.set_var_from_flat = set_from_flat(self.var_list, self.weights_to_set)
+			self.flatten_var = flatten_var(self.var_list)
 
 		# self.actor_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.actor.name)]
 		# self.baseline_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.baseline.name)]
@@ -146,7 +152,7 @@ class TRPOagent(Agent):
 		train_number = int(1./self.pms.subsample_factor)
 		step_gradients = []
 
-		flat_theta_prev = self.sess.run(flatten_var(self.actor.var_list))
+		flat_theta_prev = self.sess.run(self.flatten_var)
 
 		for iteration in range(train_number):
 			inds = np.random.choice(n_samples, int(np.floor(n_samples*self.pms.subsample_factor)), replace = False)
@@ -175,7 +181,7 @@ class TRPOagent(Agent):
 			fullstep_gradient = step_gradient / (inv_stepsize + 1e-8)
 
 			def loss_function(x):
-				self.sess.run(set_from_flat(self.actor.var_list, x))
+				self.sess.run( self.set_var_from_flat, feed_dict = {self.weights_to_set: x})
 				surr_loss, kl = self.sess.run([self.surr_loss, self.kl], feed_dict = feed_dict)
 				# self.sess.run(set_from_flat(self.actor.var_list, flat_theta_prev))
 				return surr_loss, kl
@@ -183,7 +189,7 @@ class TRPOagent(Agent):
 				flat_theta_new = linesearch(loss_function, flat_theta_prev, fullstep_gradient, self.pms.max_backtracks, self.pms.max_kl)
 			else:
 				flat_theta_new = flat_theta_prev + fullstep_gradient
-			self.sess.run(set_from_flat(self.actor.var_list, flat_theta_prev))
+			self.sess.run(self.set_var_from_flat, feed_dict = {self.weights_to_set: flat_theta_prev})
 			step_gradients.append(flat_theta_new - flat_theta_prev)
 		flat_theta_new = flat_theta_prev + np.nanmean(step_gradients, axis = 0)
 		surrgate_loss, kl_divergence = loss_function(flat_theta_new)
@@ -218,7 +224,7 @@ class TRPOagent(Agent):
 			sample_time = time.time() - t
 			t = time.time()
 			theta, theta_old, stats = self.train_paths(paths)
-			self.sess.run(set_from_flat(self.actor.var_list, theta))
+			self.sess.run(self.set_var_from_flat, feed_dict = {self.weights_to_set: theta})
 			train_time = time.time() - t
 
 			for k, v in stats.iteritems():

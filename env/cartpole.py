@@ -2,7 +2,7 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
-import ode, math
+import ode, math, random
 from os import path
 
 class CartPoleEnv(gym.Env):
@@ -93,7 +93,7 @@ class CartPoleEnv(gym.Env):
 
 	def _step(self, action):
 		# assert self.action_space.contains(action), "action %r (%s) invalid"%(action, type(action))
-		self.j1.addForce(action[0])
+		self.j1.addForce(action[0] + random.random()*2. - 1.)
 		self.j2.addTorque(0.)
 		self.world.step(self.dt)
 		state = self._get_obs()
@@ -105,6 +105,11 @@ class CartPoleEnv(gym.Env):
 		# ode.CloseODE()
 		del self.world
 		self.__init__(gravity = self.gravity, mass_cart = self.mass_cart, mass_pole = self.mass_pole, tau = self.dt, size_box = self.size_box, size_pole = self.size_pole )
+
+		for _ in range(5):
+			self.j1.addForce( random.random() * 2.- 1.  )
+			self.j2.addTorque( random.random() * 0.2 - 0.1 )
+			self.world.step(self.dt)
 		# self.body1.setPosition((0.,0.,0.))
 		# self.body2.setPosition(())
 		return self._get_obs()

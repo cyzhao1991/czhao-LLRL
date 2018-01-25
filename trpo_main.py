@@ -14,9 +14,9 @@ from env.cartpole import CartPoleEnv
 from model.net import *
 from utils.paras import Paras_base
 
-def main(gpu_num, exp_num, env = None):
+def main(gpu_num, exp_num, env = None, task_num = 0):
 	# dir_name = 'Data/checkpoint/'
-	dir_name = '/disk/scratch/chenyang/Data/trpo_stl/exp%i/'%(exp_num)
+	dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
 
@@ -38,7 +38,8 @@ def main(gpu_num, exp_num, env = None):
 		pms.num_of_paths = 100
 		
 		config = tf.ConfigProto()
-		config.gpu_options.per_process_gpu_memory_fraction = 0.20
+		config.gpu_options.per_process_gpu_memory_fraction = 0.05
+		config.gpu_options.allow_growth = True
 		sess = tf.Session(config = config)
 
 		actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'None', 'None'])
