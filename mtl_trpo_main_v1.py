@@ -97,7 +97,7 @@ def main(gpu_num, exp_num, env = None):
 	filename = dir_name + 'shelve_result'
 	my_shelf = shelve.open(filename, 'n')
 	my_shelf['saving_result'] = saving_result
-	my_shelf['env_list'] = env_list
+	# my_shelf['env_list'] = env_list
 	my_shelf['env_paras_list'] = env_paras_list
 	my_shelf.close()
 	with open('log.txt', 'a') as text_file:
