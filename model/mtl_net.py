@@ -68,9 +68,10 @@ class Mtl_Fcnn_Net(Net):
 		self.s_vector = []
 		self.output_layer_weights = []
 		self.output_layer_bias = []
+		seed = np.random.randint(1000, 4000)
 		with tf.name_scope(name):
 			for i in range(num_of_tasks):
-				self.s_vector.append( [ tf.Variable(tf.truncated_normal( [self.module_num[j]], stddev = 0.1), \
+				self.s_vector.append( [ tf.Variable(tf.truncated_normal( [self.module_num[j]], stddev = 0.1, seed = seed), \
 					name = 's_vector_t%i_h%i'%(i,j) ) for j in range(self.num_of_hidden_layer)] )
 				self.output_layer_weights.append( tf.Variable( tf.truncated_normal( [self.layer_dim[-1], self.output_dim ], stddev = 1.0), \
 					name = 'output_layer_weights_t%i'%i) )

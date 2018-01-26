@@ -7,7 +7,7 @@ from os import listdir
 # LAMBDA2_list = np.logspace(-1,3,101)
 # LAMBDA2_list = np.concatenate((LAMBDA2_list[:-1], np.logspace(3,6,101), np.logspace(6,9,101)), axis = 0)
 
-filename_list = ['../Data/trpo_stl/exp%i/shelve_result'%i for i in range(27)]
+filename_list = ['../Data/trpo_stl/task_%i_exp%i/shelve_result'%(i,j) for j in range(10) for i in range(10)]
 shelf_list = [shelve.open(filename) for filename in filename_list]
 # pdb.set_trace()
 all_result = [shelf['saving_result'] for shelf in shelf_list]
