@@ -21,16 +21,21 @@ def main(gpu_num, exp_num, env = None):
 	with open('log.txt', 'a') as text_file:
 		text_file.write('mtl gpu %i exp %i started.\n'%(gpu_num, exp_num))
 
-	gravity_list = [0., 4.9, 9.8]
-	mass_cart = [0.1, 0.5, 1.0]
-	mass_pole = [0.1, 0.5, 1.0]
-	env_paras_list = [(g, mc, mp) for g in gravity_list for mc in mass_cart for mp in mass_pole]
-	random.shuffle(env_paras_list)
-	env_paras_list = env_paras_list[:10]
-	env_list = []
-	[env_list.append(CartPoleEnv(g, mc, mp)) for g,mc,mp in env_paras_list]
+	# gravity_list = [0., 4.9, 9.8]
+	# mass_cart = [0.1, 0.5, 1.0]
+	# mass_pole = [0.1, 0.5, 1.0]
+	# env_paras_list = [(g, mc, mp) for g in gravity_list for mc in mass_cart for mp in mass_pole]
+	# random.shuffle(env_paras_list)
+	# env_paras_list = env_paras_list[:10]
+	# env_list = []
+	# [env_list.append(CartPoleEnv(g, mc, mp)) for g,mc,mp in env_paras_list]
 	# random.shuffle(env_list)
 	# env_list = env_list[:10]
+
+	gravity_list = np.arange(0.2, 2.1, .2) * 9.8
+	env_paras_list = [(g, 1.0, 0.1) for g in gravity_list]
+	env_list = []
+	[env_list.append(CartPoleEnv(g, mc, mp)) for g,mc,mp in env_paras_list]
 	num_of_envs = len(env_list)
 
 	with tf.device('/gpu:%i'%(gpu_num)):
@@ -57,8 +62,8 @@ def main(gpu_num, exp_num, env = None):
 		# weight_net = Mtl_Fcnn_Net(sess, 30, [], name = pms.name_scope+'_weight', if_bias = [True])
 		# w_out = weight_net.output
 		# s_weights = [ tf.slice(w_out, [0, 0], [1, 10]), tf.slice(w_out, [0, 10], [1,10]), tf.slice(w_out, [0,20],[1,10]), weight_net.input[0] ]
-		actor_net = Mtl_Fcnn_Net(sess, pms.obs_shape,  pms.action_shape, [100,50,25], [10,10,10], num_of_envs, name = pms.name_scope, \
-			if_bias = [False], activation_fns = ['tanh', 'tanh', 'tanh', 'None'])
+		actor_net = Mtl_Fcnn_Net(sess, pms.obs_shape,  pms.action_shape, [100,50,25], [3,3,3], num_of_envs, name = pms.name_scope, \
+			if_bias = [False], activation_fns = ['tanh', 'tanh', 'tanh', 'tanh'])
 		# actor_net.context = weight_net.input
 		# actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [False], activation_fns = ['tanh', 'tanh', 'None', 'None'])
 		# pdb.set_trace()

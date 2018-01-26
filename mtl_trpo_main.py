@@ -31,11 +31,11 @@ def main(gpu_num, exp_num, env = None):
 	# [env_list.append(CartPoleEnv(g, mc, mp)) for g,mc,mp in env_paras_list]
 	# # random.shuffle(env_list)
 	# # env_list = env_list[:10]
-	# num_of_envs = len(env_list)
 	gravity_list = np.arange(0.2, 2.1, .2) * 9.8
 	env_paras_list = [(g, 1.0, 0.1) for g in gravity_list]
 	env_list = []
 	[env_list.append(CartPoleEnv(g, mc, mp)) for g,mc,mp in env_paras_list]
+	num_of_envs = len(env_list)
 
 	with tf.device('/gpu:%i'%(gpu_num)):
 		pms = Paras_base().pms
