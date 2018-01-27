@@ -25,6 +25,7 @@ for i, (key, data) in enumerate(all_result.iteritems()):
 	plt.plot( mean_data )
 	plt.errorbar( x_err_data, mean_data[x_err_data], std_data[x_err_data] )
 	plt.xlim(0,200)
+	plt.grid()
 
 # plt.subplot(2,4,8)
 plt.figure(2)
