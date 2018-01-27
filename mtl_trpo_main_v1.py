@@ -11,10 +11,10 @@ from agent.trpo_mtl_v1 import TRPO_MTLagent
 from baseline.baseline import BaselineZeros
 from env.cartpole import CartPoleEnv
 
-def main(gpu_num, exp_num, env = None):
+def main(gpu_num, exp_num, mod_num = 10, env = None):
 
 	# dir_name = '/home/chenyang/Documents/coding/Data/checkpoint/'
-	dir_name = '/disk/scratch/chenyang/Data/trpo_mtl_v1/exp%i/'%(exp_num)
+	dir_name = '/disk/scratch/chenyang/Data/trpo_mtl_v1/mod%i_exp%i/'%(mod_num, exp_num)
 	if not os.path.isdir(dir_name):
 		os.mkdir(dir_name)
 
@@ -62,7 +62,7 @@ def main(gpu_num, exp_num, env = None):
 		# weight_net = Mtl_Fcnn_Net(sess, 30, [], name = pms.name_scope+'_weight', if_bias = [True])
 		# w_out = weight_net.output
 		# s_weights = [ tf.slice(w_out, [0, 0], [1, 10]), tf.slice(w_out, [0, 10], [1,10]), tf.slice(w_out, [0,20],[1,10]), weight_net.input[0] ]
-		actor_net = Mtl_Fcnn_Net(sess, pms.obs_shape,  pms.action_shape, [100,50,25], [3,3,3], num_of_envs, name = pms.name_scope, \
+		actor_net = Mtl_Fcnn_Net(sess, pms.obs_shape,  pms.action_shape, [100,50,25], [mod_num,mod_num,mod_num], num_of_envs, name = pms.name_scope, \
 			if_bias = [False], activation_fns = ['tanh', 'tanh', 'tanh', 'tanh'])
 		# actor_net.context = weight_net.input
 		# actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [False], activation_fns = ['tanh', 'tanh', 'None', 'None'])
@@ -107,7 +107,9 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--gpu', default = 0, type = int)
 	parser.add_argument('--exp', default = 0, type = int)
+	paraer.add_argument('--mod', default = 10, type = int)
 	args = vars(parser.parse_args())
 	gpu_num = args['gpu']
 	exp_num = args['exp']
-	main(gpu_num, exp_num)
+	mod_num = args['mod']
+	main(gpu_num, exp_num, mod_num)

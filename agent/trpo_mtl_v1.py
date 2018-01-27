@@ -319,7 +319,8 @@ class TRPO_MTLagent(Agent):
 			'train_time', 'surrgate_loss', 'kl_divergence', 'iteration_number', 's_vector', 'l1_norm']
 		saving_result = dict([(v, []) for v in dict_keys])
 
-		s_vector_var_list = [v for v in self.var_list if 's_vector' in v.name]
+		# s_vector_var_list = [v for v in self.var_list if 's_vector' in v.name]
+		s_vector_var_list = [[v for v in self.var_list if 's_vector_t%i'%i in v.name] for i in range(self.num_of_tasks)]
 
 		for iter_num in range(self.pms.max_iter):
 			print('\n******************* Iteration %i *******************'%iter_num)
@@ -331,6 +332,8 @@ class TRPO_MTLagent(Agent):
 			# self.sess.run(set_from_flat(self.actor.var_list, np.mean(theta, axis = 0)))
 			train_time = time.time() - t
 			s_vector = self.sess.run( s_vector_var_list )
+			s_vector = [np.reshape( np.array(v), -1) for v in s_vector]
+
 			for k, v in stats.iteritems():
 				print("%-20s: %15.5f"%(k,np.mean(v)))
 
