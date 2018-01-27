@@ -49,7 +49,7 @@ class TRPO_MTLagent(Agent):
 			self.flat_tangent = tf.placeholder(tf.float32, shape = [None], name = 'flat_tangent')
 
 			self.ratio_list = [tf.exp(ln - logli_old) for ln in logli_new_list]
-			self.l1_norm = [0.01 * tf.add_n( [tf.reduce_sum(tf.abs(v)) for v in task_var] ) for task_var in self.task_var_list]
+			self.l1_norm = [0.001 * tf.add_n( [tf.reduce_sum(tf.abs(v)) for v in task_var] ) for task_var in self.task_var_list]
 			self.surr_loss_list = [-tf.reduce_mean(ratio * self.advant) + l1_norm for ratio, l1_norm in zip(self.ratio_list,self.l1_norm) ]
 
 			self.total_loss_list = [ a + b for a,b in zip(self.surr_loss_list, self.l1_norm)]
