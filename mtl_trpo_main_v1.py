@@ -107,7 +107,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--gpu', default = 0, type = int)
 	parser.add_argument('--exp', default = 0, type = int)
-	paraer.add_argument('--mod', default = 10, type = int)
+	parser.add_argument('--mod', default = 10, type = int)
 	args = vars(parser.parse_args())
 	gpu_num = args['gpu']
 	exp_num = args['exp']
