@@ -14,7 +14,10 @@ from env.cartpole import CartPoleEnv
 from model.net import *
 from utils.paras import Paras_base
 
-def main(gpu_num, exp_num, env = None, task_num = 0):
+def main(gpu_num, exp_num, env = None, **kwarg):
+
+	task_num = kwarg.get('task_num', 0)
+	num_of_paths = kwarg.get('num_of_paths', 100)
 	# dir_name = 'Data/checkpoint/'
 	dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 	if not os.path.isdir(dir_name):
@@ -35,7 +38,7 @@ def main(gpu_num, exp_num, env = None, task_num = 0):
 		pms.obs_shape = observation_size
 		pms.action_shape = action_size
 		pms.max_action = max_action
-		pms.num_of_paths = 100
+		pms.num_of_paths = num_of_paths
 		
 		config = tf.ConfigProto()
 		config.gpu_options.per_process_gpu_memory_fraction = 0.05
