@@ -20,4 +20,4 @@ env_list = []
 
 for i in range(10):
 	tf.reset_default_graph()
-	main(tmp_num, i, env_list[task_num], task_num)
+	main(tmp_num, i, env_list[task_num], task_num = task_num, num_of_paths = 10)
