@@ -21,8 +21,8 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 	num_of_tasks = kwargs.get('num_of_tasks', 10)
 	# task_num = kwarg.get('task_num', 0)
 	# num_of_paths = kwarg.get('num_of_paths', 100)
-	# dir_name = 'Data/checkpoint/'
-	dir_name = '/disk/scratch/chenyang/Data/context_trpo/mod_%i_exp%i/'%(mod_num, exp_num)
+	dir_name = 'Data/checkpoint/'
+	# dir_name = '/disk/scratch/chenyang/Data/context_trpo/mod_%i_exp%i/'%(mod_num, exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
 
@@ -38,7 +38,7 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 	num_of_envs = len(env_list)
 
 	for env1,g in zip(env_list, env_paras_list):
-		env1.context = [1, g[0]]
+		env1.context = np.array([1, g[0]], dtype = np.float64)
 
 
 	with tf.device('/gpu:%i'%(gpu_num)):
@@ -54,6 +54,7 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 		pms.action_shape = action_size
 		pms.max_action = max_action
 		pms.num_of_paths = num_of_paths
+		pms.num_of_paths = 10
 		pms.context_shape = 2
 		
 		config = tf.ConfigProto()

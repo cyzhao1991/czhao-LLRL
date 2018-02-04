@@ -1,3 +1,4 @@
+from __future__ import print_function
 import gym
 from gym import spaces
 from gym.utils import seeding
@@ -177,7 +178,8 @@ class CartPoleEnv(gym.Env):
 		u = action
 		# costs = x **2 + .2*xdot **2 + angle_normalize(th) ** 2 + .1*thdot**2 + .001 *u**2
 		costs = x ** 2 + angle_normalize(th) ** 2 + .001 * u**2
-		return np.min(costs - 10, 0)
+
+		return np.minimum(costs - 10, 0)
 
 		# return -1.
 

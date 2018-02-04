@@ -15,11 +15,11 @@ class Context_TRPO_Agent(Agent):
 		self.baseline = baseline
 		self.var_list = self.actor.var_list
 		self.num_of_tasks = len(env)
-		self.init_vars()
 
 		self.var_list = self.actor.var_list
 		self.shared_var_list = self.actor.shared_var_list
 		self.task_var_list = self.actor.task_var_list
+		self.init_vars()
 
 		print('Building Network')
 
@@ -153,6 +153,7 @@ class Context_TRPO_Agent(Agent):
 		paths = sum(all_paths, [])
 		sample_data = self.process_paths(paths)
 		obs_source = sample_data['observations']
+		con_source = sample_data['contexts']
 		act_source = sample_data['actions']
 		adv_source = sample_data['advantages']
 		n_samples = sample_data['total_time_step']
@@ -167,12 +168,14 @@ class Context_TRPO_Agent(Agent):
 		for iteration in range(train_number):
 			inds = np.random.choice(n_samples, int(np.floor(n_samples*self.pms.subsample_factor)), replace = False)
 			obs_n = obs_source[inds]
+			con_n = con_source[inds]
 			act_n = act_source[inds]
 			adv_n = adv_source[inds]
 			act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[inds]])
 			act_dis_logstd_n = np.array([a_info['logstd'] for a_info in actor_info_source[inds]])
 
 			feed_dict = {self.obs: obs_n,
+						 self.context: con_n,
 						 self.advant: adv_n,
 						 self.action: act_n,
 						 self.old_dist_mean: act_dis_mean_n[:,np.newaxis],
