@@ -45,7 +45,7 @@ class Context_Fcnn_Net(Net):
 
 
 	def build(self, name):
-		net = [self.input_tf]
+		net = [self.input]
 		with tf.name_scope(name):
 			for i in range(self.num_of_layer):
 				hidden_unit = tf.reduce_sum( tf.stack( [tf.matmul(net[i], weight) + bias for weight, bias in zip(self.KB_weights[i], self.KB_bias[i])] , \
