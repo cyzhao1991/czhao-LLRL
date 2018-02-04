@@ -49,7 +49,7 @@ class Context_Fcnn_Net(Net):
 		with tf.name_scope(name):
 			for i in range(self.num_of_layer):
 				hidden_unit = tf.reduce_sum( tf.stack( [tf.matmul(net[i], weight) + bias for weight, bias in zip(self.KB_weights[i], self.KB_bias[i])] , \
-					axis = -1) * self.s_vector[i], axix = -1)
+					axis = -1) * self.s_vector[i], axis = -1)
 				net.append(self.activation_fns_call[i](hidden_unit))
 
 		return net[-1]
