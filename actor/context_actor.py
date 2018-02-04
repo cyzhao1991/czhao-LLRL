@@ -11,9 +11,9 @@ class Context_Gaussian_Actor(Actor):
 		with tf.name_scope(self.pms.name_scope):
 			self.action_logstd = tf.Variable( tf.truncated_normal([self.net.output_dim], stddev = 0.01), name = 'logstd_t') 
 			# self.action_logstd = tf.tile(self.action_logstd_param, )
-			self.action_std = tf.exp(logstd)
-			self.action_std = tf.maximum(a_std, self.pms.min_std)
-			self.action_std = tf.minimum(a_std, self.pms.max_std)
+			self.action_std = tf.exp(self.action_logstd)
+			self.action_std = tf.maximum(self.action_std, self.pms.min_std)
+			self.action_std = tf.minimum(self.action_std, self.pms.max_std)
 
 		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.pms.name_scope)]
 		self.shared_var_list = [v for v in self.var_list if 'KB' in v.name]
