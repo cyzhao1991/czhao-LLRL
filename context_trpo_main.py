@@ -66,7 +66,7 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 		actor = Context_Gaussian_Actor(actor_net, sess, pms)
 		baseline = BaselineZeros(sess, pms)
 
-		learn_agent = Context_TRPO_Agent(env, actor, baseline, sess, pms, [None])
+		learn_agent = Context_TRPO_Agent(env_list, actor, baseline, sess, pms, [None])
 
 	saver = tf.train.Saver()
 	learn_agent.saver = saver
