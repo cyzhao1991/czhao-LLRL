@@ -14,7 +14,7 @@ class Context_TRPO_Agent(Agent):
 		self.actor = actor
 		self.baseline = baseline
 		self.var_list = self.actor.var_list
-		self.num_of_tasks = len(env_list)
+		self.num_of_tasks = len(env)
 		self.init_vars()
 
 		self.var_list = self.actor.var_list
