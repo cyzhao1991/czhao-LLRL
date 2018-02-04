@@ -10,7 +10,7 @@ from agent import Agent
 class Context_TRPO_Agent(Agent):
 
 	def __init__(self, env, actor, baseline, session, flags, saver = None):
-		super(TRPOagent, self).__init__(env, session, flags, saver)
+		super(Context_TRPO_Agent, self).__init__(env, session, flags, saver)
 		self.actor = actor
 		self.baseline = baseline
 		self.var_list = self.actor.var_list
