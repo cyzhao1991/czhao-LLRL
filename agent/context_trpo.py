@@ -7,23 +7,27 @@ from utils.krylov import cg
 from utils.utils import *
 from agent import Agent
 
-class TRPOagent(Agent):
+class Context_TRPO_Agent(Agent):
 
 	def __init__(self, env, actor, baseline, session, flags, saver = None):
 		super(TRPOagent, self).__init__(env, session, flags, saver)
 		self.actor = actor
 		self.baseline = baseline
 		self.var_list = self.actor.var_list
-
+		self.num_of_tasks = len(env_list)
 		self.init_vars()
 
-		print('Building Network')
+		self.var_list = self.actor.var_list
+		self.shared_var_list = self.actor.shared_var_list
+		self.task_var_list = self.actor.task_var_list
 
+		print('Building Network')
 
 	def init_vars(self):
 
 		with tf.name_scope(self.pms.name_scope):
 			self.obs = self.actor.input_ph
+			self.context = self.actor.context_ph
 			self.advant = tf.placeholder(tf.float32, [None], name = 'advantages')
 			self.action = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'action')
 			self.old_dist_mean = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_mean')
@@ -37,8 +41,10 @@ class TRPOagent(Agent):
 
 			self.surr_loss = - tf.reduce_mean(self.ratio * self.advant)
 			self.kl = tf.reduce_mean(kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd))
+			self.l1_norm = self.pms.l1_regularizer * tf.add_n([tf.reduce_sum(tf.abs(v)) for v in self.task_var_list])
+			self.total_loss = self.surr_loss + self.l1_norm
 
-			surr_grad = tf.gradients(self.surr_loss, self.actor.var_list)
+			surr_grad = tf.gradients(self.total_loss, self.actor.var_list)
 			self.flat_surr_grad = flatten_var(surr_grad)
 
 			batchsize = tf.cast(tf.shape(self.obs)[0], tf.float32)
@@ -53,54 +59,57 @@ class TRPOagent(Agent):
 			self.set_var_from_flat = set_from_flat(self.var_list, self.weights_to_set)
 			self.flatten_var = flatten_var(self.var_list)
 
-		# self.actor_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.actor.name)]
-		# self.baseline_var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.baseline.name)]
 
-	def get_single_path(self):
-
+	def get_single_path(self, task_index):
 		observations = []
+		contexts = []
 		actions = []
 		rewards = []
 		actor_infos = []
-		state = self.env.reset()
+		state = self.env[task_index].reset()
+		context = self.env[task_index].context
 
 		if self.pms.render:
-			self.env.render()
+			self.env[task_index].render()
 
 		for _ in range(self.pms.max_time_step):
-			action, actor_info = self.actor.get_action(state)
+			action, actor_info = self.actor.get_action(state, context)
 			action = np.array([action]) if len(np.shape(action)) == 0 else np.array(action)
-			next_state, reward, terminal, _ = self.env.step(self.pms.max_action * action)
+			next_state, reward, terminal, _ = self.env[task_index].step(action)
 			observations.append(state)
 			actions.append(action)
 			rewards.append(reward)
+			contexts.append(context)
 			actor_infos.append(actor_info)
 			if terminal:
 				break
 			state = next_state
 			if self.pms.render:
-				self.env.render()
-		path = dict(observations = np.array(observations), actions = np.array(actions), rewards = np.array(rewards), actor_infos = actor_infos)
+				self.env[task_index].render()
+		path = dict(observations = np.array(observations), contexts = np.array(contexts), actions = np.array(actions), rewards = np.array(rewards), actor_infos = actor_infos)
 		return path
 
 	def get_paths(self, num_of_paths = None, prefix = '', verbose = True):
+		# pool = Pool(processes = 20)
 		if num_of_paths is None:
 			num_of_paths = self.pms.num_of_paths
 		paths = []
 		t = time.time()
 		if verbose:
-			print(prefix+'Gathering Samples')
-		
-		for i in range(num_of_paths):
-			paths.append(self.get_single_path())
-			if verbose:
-				sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i, time.time()-t))
-				sys.stdout.flush()
-		
-		if verbose:
-			print('%i paths sampled. Total time used: %f.'%(num_of_paths, time.time()-t))
-		return paths
+			print(prefix + 'Gathering Samples')
 
+		for task_index in range(self.num_of_tasks):
+			# paths = pool.map(get_single_path, [[self.env[task_index], self.actor, task_index, self.pms]] * num_of_paths)
+			paths.append([])
+			for i in range(num_of_paths):
+
+				paths[task_index].append(self.get_single_path( task_index ))
+				if verbose:
+					sys.stdout.write('%i-th path sampled. simulation time: %f \r'%(i + task_index*num_of_paths, time.time()-t))
+					sys.stdout.flush()
+		if verbose:
+			print('All paths sampled. Total sampled paths: %i. Total time usesd: %f.'%(num_of_paths * self.num_of_tasks, time.time() - t) )
+		return paths
 
 	def process_paths(self, paths):
 		total_time_step = 0
@@ -116,6 +125,7 @@ class TRPOagent(Agent):
 				path['advantages'] = discount(deltas, self.pms.discount * self.pms.gae_lambda)
 
 		observations = np.concatenate([path['observations'] for path in paths])
+		contexts = np.concatenate([path['contexts'] for path in paths])
 		actions = np.concatenate([path['actions'] for path in paths])
 		rewards = np.concatenate([path['rewards'] for path in paths])
 		advantages = np.concatenate([path['advantages'] for path in paths])
@@ -126,6 +136,7 @@ class TRPOagent(Agent):
 
 		sample_data = dict(
 			observations = observations,
+			contexts = contexts,
 			actions = actions,
 			rewards = rewards,
 			advantages = advantages,
@@ -138,7 +149,8 @@ class TRPOagent(Agent):
 
 		return sample_data
 
-	def train_paths(self, paths):
+	def train_paths(self, all_paths):
+		paths = sum(all_paths, [])
 		sample_data = self.process_paths(paths)
 		obs_source = sample_data['observations']
 		act_source = sample_data['actions']
@@ -191,29 +203,24 @@ class TRPOagent(Agent):
 			step_gradients.append(flat_theta_new - flat_theta_prev)
 		flat_theta_new = flat_theta_prev + np.nanmean(step_gradients, axis = 0)
 		surrgate_loss, kl_divergence = loss_function(flat_theta_new)
+		l1_norm = self.sess.run(self.l1_norm)
 		stats = dict(
 			surrgate_loss = surrgate_loss,
 			kl_divergence = kl_divergence,
 			average_return = np.mean(episode_rewards),
-			total_time_step = n_samples
+			total_time_step = n_samples,
+			l1_norm = l1_norm
 			)
 		return flat_theta_new, flat_theta_prev, stats
 
+
 	def learn(self):
-		'''
-		saving_result = dict(
-			average_return = [],
-			sample_time = [],
-			total_time_step = [],
-			train_time = [],
-			surrgate_loss = [],
-			kl_divergence = [],
-			iteration_number = []
-			)
-		'''
 		dict_keys = ['average_return', 'sample_time', 'total_time_step', \
-			'train_time', 'surrgate_loss', 'kl_divergence', 'iteration_number']
+			'train_time', 'surrgate_loss', 'kl_divergence', 'iteration_number', 's_vector', 'l1_norm']
 		saving_result = dict([(v, []) for v in dict_keys])
+
+		# s_vector_var_list = [v for v in self.var_list if 's_vector' in v.name]
+		# s_vector_var_list = [[v for v in self.var_list if 's_vector_t%i'%i in v.name] for i in range(self.num_of_tasks)]
 
 		for iter_num in range(self.pms.max_iter):
 			print('\n******************* Iteration %i *******************'%iter_num)
@@ -222,14 +229,16 @@ class TRPOagent(Agent):
 			sample_time = time.time() - t
 			t = time.time()
 			theta, theta_old, stats = self.train_paths(paths)
-			self.sess.run(self.set_var_from_flat, feed_dict = {self.weights_to_set: theta})
+			# self.sess.run(set_from_flat(self.actor.var_list, np.mean(theta, axis = 0)))
 			train_time = time.time() - t
+			s_vector = self.sess.run( self.task_var_list )
+			# s_vector = [np.reshape( np.array(v), -1) for v in s_vector]
 
 			for k, v in stats.iteritems():
-				print("%-20s: %15.5f"%(k,v))
+				print("%-20s: %15.5f"%(k,np.mean(v)))
 
 			save_value_list = [stats['average_return'], sample_time, stats['total_time_step'], \
-				train_time, stats['surrgate_loss'], stats['kl_divergence'], iter_num]
+				train_time, stats['surrgate_loss'], stats['kl_divergence'], iter_num, s_vector, stats['l1_norm']]
 
 			[saving_result[k].append(v) for (k,v) in zip(dict_keys, save_value_list)]
 
@@ -237,8 +246,3 @@ class TRPOagent(Agent):
 				self.save_model(self.pms.save_dir + self.pms.env_name + '-iter%i'%(iter_num))
 
 		return saving_result
-
-
-
-
-

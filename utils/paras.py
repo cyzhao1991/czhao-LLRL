@@ -20,6 +20,7 @@ class Paras_base(object):
 	flags.DEFINE_float('max_kl', .1, 'maximum kl divergence per update')
 	flags.DEFINE_float('max_action', 10.0, 'maximum action')
 	flags.DEFINE_float('gae_lambda', 1.0, 'lambda factor for GAE')
+	flags.DEFINE_float('l1_regularizer', .001, 'alpha for l1 regularizer')
 
 	flags.DEFINE_boolean('render', False, 'whether to render')
 	flags.DEFINE_boolean('train_flag', True, 'whether in training process')
