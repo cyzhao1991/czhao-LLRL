@@ -11,7 +11,7 @@ from agent.trpo_mtl_v1 import TRPO_MTLagent
 from baseline.baseline import BaselineZeros
 from env.cartpole import CartPoleEnv
 
-def main(gpu_num, exp_num, env = None, **kwarg):
+def main(gpu_num, exp_num, env = None, **kwargs):
 
 	# dir_name = '/home/chenyang/Documents/coding/Data/checkpoint/'
 	dir_name = '/disk/scratch/chenyang/Data/trpo_mtl_v1/mod%i_exp%i/'%(mod_num, exp_num)
@@ -34,7 +34,7 @@ def main(gpu_num, exp_num, env = None, **kwarg):
 	mod_num = kwargs.get('mod_num', 10)
 	num_of_paths = kwargs.get('num_of_paths', 100)
 	num_of_tasks = kwargs.get('num_of_tasks', 10)
-	
+
 	gravity_list = np.arange(0.2, 2.1, .2) * 9.8
 	env_paras_list = [(g, 1.0, 0.1) for g in gravity_list]
 	random.shuffle(env_paras_list)

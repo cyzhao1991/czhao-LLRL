@@ -14,7 +14,7 @@ from env.cartpole import CartPoleEnv
 from model.context_net import Context_Fcnn_Net
 from utils.paras import Paras_base
 
-def main(gpu_num, exp_num, env = None, **kwarg):
+def main(gpu_num, exp_num, env = None, **kwargs):
 
 	mod_num = kwargs.get('mod_num', 10)
 	num_of_paths = kwargs.get('num_of_paths', 100)
@@ -61,7 +61,8 @@ def main(gpu_num, exp_num, env = None, **kwarg):
 		config.gpu_options.allow_growth = True
 		sess = tf.Session(config = config)
 
-		actor_net = Context_Fcnn_Net(sess, pms.obs_shape, pms.action_shape, pms.context_shape, [100,50,25], [5,5,5,5] ,name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'None', 'None'])
+		actor_net = Context_Fcnn_Net(sess, pms.obs_shape, pms.action_shape, pms.context_shape, [100,50,25], [mod_num,mod_num,mod_num,mod_num],\
+			name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'None', 'None'])
 		actor = Context_Gaussian_Actor(actor_net, sess, pms)
 		baseline = BaselineZeros(sess, pms)
 
