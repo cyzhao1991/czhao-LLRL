@@ -21,8 +21,8 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 	num_of_tasks = kwargs.get('num_of_tasks', 10)
 	# task_num = kwarg.get('task_num', 0)
 	# num_of_paths = kwarg.get('num_of_paths', 100)
-	dir_name = 'Data/checkpoint/'
-	# dir_name = '/disk/scratch/chenyang/Data/context_trpo/mod_%i_exp%i/'%(mod_num, exp_num)
+	# dir_name = 'Data/checkpoint/'
+	dir_name = '/disk/scratch/chenyang/Data/context_trpo/mod_%i_exp%i/'%(mod_num, exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
 
