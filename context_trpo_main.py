@@ -17,7 +17,7 @@ from utils.paras import Paras_base
 def main(gpu_num, exp_num, env = None, **kwargs):
 
 	mod_num = kwargs.get('mod_num', 10)
-	num_of_paths = kwargs.get('num_of_paths', 100)
+	num_of_paths = kwargs.get('num_of_paths', 10)
 	num_of_tasks = kwargs.get('num_of_tasks', 10)
 	# task_num = kwarg.get('task_num', 0)
 	# num_of_paths = kwarg.get('num_of_paths', 100)
@@ -92,8 +92,10 @@ if __name__ == "__main__":
 	parser.add_argument('--gpu', default = 0, type = int)
 	parser.add_argument('--exp', default = 0, type = int)
 	parser.add_argument('--mod', default = 10, type = int)
+	parser.add_argument('--path', default = 10, type= int)
 	args = vars(parser.parse_args())
 	gpu_num = args['gpu']
 	exp_num = args['exp']
 	mod_num = args['mod']
-	main(gpu_num, exp_num, mod_num = mod_num)
+	num_of_paths = args['path']
+	main(gpu_num, exp_num, mod_num = mod_num, num_of_paths = num_of_paths)

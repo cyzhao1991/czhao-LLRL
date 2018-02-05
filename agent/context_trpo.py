@@ -44,7 +44,10 @@ class Context_TRPO_Agent(Agent):
 
 			self.surr_loss = - tf.reduce_mean(self.ratio * self.advant)
 			self.kl = tf.reduce_mean(kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd))
-			self.l1_norm = self.pms.l1_regularizer * tf.add_n([tf.reduce_sum(tf.nn.relu(v)) for v in self.task_var_list])
+			relu_task_var = [tf.nn.relu(v) for v in self.task_var_list]
+			self.l1_norm = self.pms.l1_regularizer * tf.add_n([tf.reduce_sum(v) for v in relu_task_var])
+			# self.l0_norm = tf.constant([1])
+			self.l0_norm = tf.add_n([tf.count_nonzero(v) for v in relu_task_var])
 			self.total_loss = self.surr_loss + self.l1_norm
 
 			surr_grad = tf.gradients(self.total_loss, self.shared_var_list + self.task_var_list)
@@ -225,20 +228,21 @@ class Context_TRPO_Agent(Agent):
 			step_gradients.append(flat_theta_new - flat_theta_prev)
 		flat_theta_new = flat_theta_prev + np.nanmean(step_gradients, axis = 0)
 		surrgate_loss, kl_divergence = loss_function(flat_theta_new[:self.shared_var_num], flat_theta_new[self.shared_var_num:])
-		l1_norm = self.sess.run(self.l1_norm)
+		l1_norm, l0_norm = self.sess.run([self.l1_norm, self.l0_norm])
 		stats = dict(
 			surrgate_loss = surrgate_loss,
 			kl_divergence = kl_divergence,
 			average_return = np.mean(episode_rewards),
 			total_time_step = n_samples,
-			l1_norm = l1_norm
+			l1_norm = l1_norm,
+			l0_norm = l0_norm
 			)
 		return flat_theta_new, flat_theta_prev, stats
 
 
 	def learn(self):
 		dict_keys = ['average_return', 'sample_time', 'total_time_step', \
-			'train_time', 'surrgate_loss', 'kl_divergence', 'iteration_number', 's_vector', 'l1_norm']
+			'train_time', 'surrgate_loss', 'kl_divergence', 'iteration_number', 's_vector', 'l1_norm', 'l0_norm']
 		saving_result = dict([(v, []) for v in dict_keys])
 
 		# s_vector_var_list = [v for v in self.var_list if 's_vector' in v.name]
@@ -260,7 +264,7 @@ class Context_TRPO_Agent(Agent):
 				print("%-20s: %15.5f"%(k,np.mean(v)))
 
 			save_value_list = [stats['average_return'], sample_time, stats['total_time_step'], \
-				train_time, stats['surrgate_loss'], stats['kl_divergence'], iter_num, s_vector, stats['l1_norm']]
+				train_time, stats['surrgate_loss'], stats['kl_divergence'], iter_num, s_vector, stats['l1_norm'], stats['l0_norm']]
 
 			[saving_result[k].append(v) for (k,v) in zip(dict_keys, save_value_list)]
 

@@ -7,10 +7,18 @@ from os import listdir
 # LAMBDA2_list = np.logspace(-1,3,101)
 # LAMBDA2_list = np.concatenate((LAMBDA2_list[:-1], np.logspace(3,6,101), np.logspace(6,9,101)), axis = 0)
 
-filename_list = ['../Data/trpo_stl/task_%i_exp%i/shelve_result'%(i,j) for j in range(10) for i in range(10)]
+filename_list = ['../Data/arv/trpo_stl_Jan29/task_%i_exp%i/shelve_result'%(j,i) for j in range(10) for i in range(10)]
 shelf_list = [shelve.open(filename) for filename in filename_list]
 # pdb.set_trace()
-all_result = [shelf['saving_result'] for shelf in shelf_list]
+all_result = []
+for filename, shelf in zip(filename_list, shelf_list):
+	try:	
+		all_result.append(shelf['saving_result'])
+		print('good     '+filename)
+		# all_result = [shelf['saving_result'] for shelf in shelf_list]
+	except:
+		print('bad      '+filename)
+
 key_list = all_result[0].keys()
 all_result = dict([ (key, np.array([result[key] for result in all_result]) ) for key in key_list])
 plt.figure(1)
