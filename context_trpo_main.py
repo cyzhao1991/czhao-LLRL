@@ -71,7 +71,8 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 
 	saver = tf.train.Saver()
 	learn_agent.saver = saver
-	sess.run(tf.global_variables_initializer())
+	with tf.device('/gpu:%i'%(gpu_num)):
+		sess.run(tf.global_variables_initializer())
 
 	tf.get_default_graph().finalize()
 
