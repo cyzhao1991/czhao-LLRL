@@ -172,7 +172,7 @@ class Context_TRPO_Agent(Agent):
 		
 		episode_rewards = np.array([np.sum(path['rewards']) for path in paths])
 		batchsize = int(self.pms.num_of_paths * self.pms.max_time_step * self.num_of_tasks * self.pms.subsample_factor)
-		train_number = int(np.ceil(n_samples / batchsize))
+		train_number = int(np.ceil( 1.0 * n_samples / batchsize))
 		# train_number = int(1./self.pms.subsample_factor)
 		step_gradients = []
 
