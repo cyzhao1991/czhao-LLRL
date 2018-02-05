@@ -57,7 +57,7 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 		pms.subsample_factor = 0.01
 		pms.context_shape = 2
 		
-		config = tf.ConfigProto()
+		config = tf.ConfigProto(allow_soft_replacement = True)
 		config.gpu_options.per_process_gpu_memory_fraction = 0.05
 		config.gpu_options.allow_growth = True
 		sess = tf.Session(config = config)
