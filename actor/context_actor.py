@@ -9,7 +9,7 @@ class Context_Gaussian_Actor(Actor):
 		super(Context_Gaussian_Actor, self).__init__(net, sess, pms)
 		self.context_ph = self.net.context
 		with tf.name_scope(self.pms.name_scope):
-			self.action_logstd = tf.Variable( tf.truncated_normal([self.net.output_dim], stddev = 0.01), name = 'logstd_t') 
+			self.action_logstd = tf.Variable( tf.truncated_normal([self.net.output_dim], stddev = 0.01), name = 'KB_logstd') 
 			# self.action_logstd = tf.tile(self.action_logstd_param, )
 			self.action_std = tf.exp(self.action_logstd)
 			self.action_std = tf.maximum(self.action_std, self.pms.min_std)

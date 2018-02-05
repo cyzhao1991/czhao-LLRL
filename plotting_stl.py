@@ -32,7 +32,7 @@ for i, (key, data) in enumerate(all_result.iteritems()):
 	std_data = np.std(data, axis = 0)
 	plt.plot( mean_data )
 	plt.errorbar( x_err_data, mean_data[x_err_data], std_data[x_err_data] )
-	plt.xlim(0,200)
+	plt.xlim(-1,200)
 	plt.grid()
 
 # plt.subplot(2,4,8)
