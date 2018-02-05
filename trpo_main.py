@@ -18,8 +18,8 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 
 	task_num = kwargs.get('task_num', 0)
 	num_of_paths = kwargs.get('num_of_paths', 100)
-	# dir_name = 'Data/checkpoint/'
-	dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
+	dir_name = 'Data/checkpoint/'
+	# dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
 
@@ -39,7 +39,8 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 		pms.action_shape = action_size
 		pms.max_action = max_action
 		pms.num_of_paths = num_of_paths
-		
+		pms.subsample_factor = 0.1
+
 		config = tf.ConfigProto()
 		config.gpu_options.per_process_gpu_memory_fraction = 0.05
 		config.gpu_options.allow_growth = True

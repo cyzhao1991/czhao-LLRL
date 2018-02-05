@@ -19,6 +19,9 @@ class Context_TRPO_Agent(Agent):
 		self.var_list = self.actor.var_list
 		self.shared_var_list = self.actor.shared_var_list
 		self.task_var_list = self.actor.task_var_list
+
+		self.shared_var_num = np.sum( self.sess.run([tf.size(v) for v in self.shared_var_list]) )
+
 		self.init_vars()
 
 		print('Building Network')
@@ -41,10 +44,10 @@ class Context_TRPO_Agent(Agent):
 
 			self.surr_loss = - tf.reduce_mean(self.ratio * self.advant)
 			self.kl = tf.reduce_mean(kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd))
-			self.l1_norm = self.pms.l1_regularizer * tf.add_n([tf.reduce_sum(tf.abs(v)) for v in self.task_var_list])
+			self.l1_norm = self.pms.l1_regularizer * tf.add_n([tf.reduce_sum(tf.nn.relu(v)) for v in self.task_var_list])
 			self.total_loss = self.surr_loss + self.l1_norm
 
-			surr_grad = tf.gradients(self.total_loss, self.actor.var_list)
+			surr_grad = tf.gradients(self.total_loss, self.shared_var_list + self.task_var_list)
 			self.flat_surr_grad = flatten_var(surr_grad)
 
 			batchsize = tf.cast(tf.shape(self.obs)[0], tf.float32)
@@ -58,6 +61,11 @@ class Context_TRPO_Agent(Agent):
 			self.weights_to_set = tf.placeholder(tf.float32, [None], name = 'weights_to_set')
 			self.set_var_from_flat = set_from_flat(self.var_list, self.weights_to_set)
 			self.flatten_var = flatten_var(self.var_list)
+
+			self.set_shared_from_flat = set_from_flat(self.shared_var_list, self.weights_to_set)
+			self.set_task_from_flat = set_from_flat(self.task_var_list, self.weights_to_set)
+			self.flatten_shared_var = flatten_var(self.shared_var_list)
+			self.flatten_task_var = flatten_var(self.task_var_list )
 
 
 	def get_single_path(self, task_index):
@@ -75,7 +83,7 @@ class Context_TRPO_Agent(Agent):
 		for _ in range(self.pms.max_time_step):
 			action, actor_info = self.actor.get_action(state, context)
 			action = np.array([action]) if len(np.shape(action)) == 0 else np.array(action)
-			next_state, reward, terminal, _ = self.env[task_index].step(action)
+			next_state, reward, terminal, _ = self.env[task_index].step(self.pms.max_action * action)
 			observations.append(state)
 			actions.append(action)
 			rewards.append(reward)
@@ -160,13 +168,20 @@ class Context_TRPO_Agent(Agent):
 		actor_info_source = sample_data['actor_infos']
 		
 		episode_rewards = np.array([np.sum(path['rewards']) for path in paths])
-		train_number = int(1./self.pms.subsample_factor)
+		batchsize = int(self.pms.num_of_paths * self.pms.max_time_step * self.num_of_tasks * self.pms.subsample_factor)
+		train_number = int(np.ceil(n_samples / batchsize))
+		# train_number = int(1./self.pms.subsample_factor)
 		step_gradients = []
 
 		flat_theta_prev = self.sess.run(self.flatten_var)
+		flat_shared_prev = self.sess.run(self.flatten_shared_var)
+		flat_task_prev = self.sess.run(self.flatten_task_var)
 
 		for iteration in range(train_number):
-			inds = np.random.choice(n_samples, int(np.floor(n_samples*self.pms.subsample_factor)), replace = False)
+			if n_samples > batchsize:
+				inds = np.random.choice(n_samples, batchsize, replace = False)
+			else:
+				inds = np.arange(n_samples)
 			obs_n = obs_source[inds]
 			con_n = con_source[inds]
 			act_n = act_source[inds]
@@ -193,19 +208,23 @@ class Context_TRPO_Agent(Agent):
 			inv_stepsize = np.sqrt( sAs/(2.*self.pms.max_kl) )
 			fullstep_gradient = step_gradient / (inv_stepsize + 1e-8)
 
-			def loss_function(x):
-				self.sess.run( self.set_var_from_flat, feed_dict = {self.weights_to_set: x})
+			def loss_function(x_share, x_task):
+				# self.sess.run( self.set_var_from_flat, feed_dict = {self.weights_to_set: x})
+				self.sess.run(self.set_shared_from_flat, feed_dict = {self.weights_to_set: x_share})
+				self.sess.run(self.set_task_from_flat, feed_dict = {self.weights_to_set: x_task})
 				surr_loss, kl = self.sess.run([self.surr_loss, self.kl], feed_dict = feed_dict)
 				# self.sess.run(set_from_flat(self.actor.var_list, flat_theta_prev))
 				return surr_loss, kl
 			if self.pms.linesearch:
-				flat_theta_new = linesearch(loss_function, flat_theta_prev, fullstep_gradient, self.pms.max_backtracks, self.pms.max_kl)
+				flat_shared_new = linesearch(lambda x:loss_function(x, flat_task_prev), flat_shared_prev, fullstep_gradient[:self.shared_var_num], self.pms.max_backtracks, self.pms.max_kl)
+				flat_task_new = linesearch(lambda x:loss_function(flat_shared_prev, x), flat_task_prev, fullstep_gradient[self.shared_var_num:], self.pms.max_backtracks, self.pms.max_kl)
+				flat_theta_new = np.concatenate([flat_shared_new, flat_task_new], axis = 0)
 			else:
 				flat_theta_new = flat_theta_prev + fullstep_gradient
 			self.sess.run(self.set_var_from_flat, feed_dict = {self.weights_to_set: flat_theta_prev})
 			step_gradients.append(flat_theta_new - flat_theta_prev)
 		flat_theta_new = flat_theta_prev + np.nanmean(step_gradients, axis = 0)
-		surrgate_loss, kl_divergence = loss_function(flat_theta_new)
+		surrgate_loss, kl_divergence = loss_function(flat_theta_new[:self.shared_var_num], flat_theta_new[self.shared_var_num:])
 		l1_norm = self.sess.run(self.l1_norm)
 		stats = dict(
 			surrgate_loss = surrgate_loss,
