@@ -54,7 +54,7 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 		pms.action_shape = action_size
 		pms.max_action = max_action
 		pms.num_of_paths = num_of_paths
-		pms.subsample_factor = 0.01
+		pms.subsample_factor = 0.1
 		pms.context_shape = 2
 		
 		config = tf.ConfigProto(allow_soft_placement = True)
