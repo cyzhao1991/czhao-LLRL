@@ -37,10 +37,10 @@ class Context_Fcnn_Net(Net):
 
 	def def_Task_knowledge(self, name):
 		with tf.name_scope(name):
-			self.c_weights = [tf.Variable(tf.truncated_normal([self.context_dim, dim], mean = .1, stddev = .03), \
+			self.c_weights = [tf.Variable(tf.truncated_normal([self.context_dim, dim], mean = 0.0, stddev = 0.1), \
 				name = 's_vector_h%i'%k) for dim,k in zip(self.module_num, range(self.num_of_layer))]
-			self.s_vector = [ tf.expand_dims(tf.matmul(self.context, tf.nn.relu(w_c)), 1) for w_c in self.c_weights]
-			# self.s_vector = [ tf.expand_dims(tf.matmul(self.context, w_c), 1) for w_c in self.c_weights]
+			# self.s_vector = [ tf.expand_dims(tf.matmul(self.context, tf.nn.relu(w_c)), 1) for w_c in self.c_weights]
+			self.s_vector = [ tf.expand_dims(tf.matmul(self.context, w_c), 1) for w_c in self.c_weights]
 
 
 	def build(self, name):

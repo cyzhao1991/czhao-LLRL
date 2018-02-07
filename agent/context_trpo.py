@@ -44,11 +44,12 @@ class Context_TRPO_Agent(Agent):
 
 			self.surr_loss = - tf.reduce_mean(self.ratio * self.advant)
 			self.kl = tf.reduce_mean(kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd))
-			relu_task_var = [tf.nn.relu(v) for v in self.task_var_list]
-			self.l1_norm = self.pms.l1_regularizer * tf.add_n([tf.reduce_sum(v) for v in relu_task_var])
-			self.l0_norm = tf.add_n([tf.count_nonzero(v) for v in relu_task_var])
-			# self.l1_norm = self.pms.l1_regularizer * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.task_var_list] )
-			# self.l0_norm = tf.add_n( [tf.count_nonzero( v > 0.01)])
+			# relu_task_var = [tf.nn.relu(v) for v in self.task_var_list]
+			# self.l1_norm = self.pms.l1_regularizer * tf.add_n([tf.reduce_sum(v) for v in relu_task_var])
+			# self.l0_norm = tf.add_n([tf.count_nonzero(v) for v in relu_task_var])
+			self.l1_norm = self.pms.l1_regularizer * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.task_var_list] )
+			self.l0_norm = tf.add_n( [tf.count_nonzero( v > 0.01)] )
+			
 			self.total_loss = self.surr_loss + self.l1_norm
 
 			surr_grad = tf.gradients(self.total_loss, self.shared_var_list + self.task_var_list)
