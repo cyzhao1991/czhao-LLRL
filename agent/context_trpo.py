@@ -48,7 +48,7 @@ class Context_TRPO_Agent(Agent):
 			# self.l1_norm = self.pms.l1_regularizer * tf.add_n([tf.reduce_sum(v) for v in relu_task_var])
 			# self.l0_norm = tf.add_n([tf.count_nonzero(v) for v in relu_task_var])
 			self.l1_norm = self.pms.l1_regularizer * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.task_var_list] )
-			self.l0_norm = tf.add_n( [tf.count_nonzero( v > 0.01) for v in self.task_var_list] )
+			self.l0_norm = tf.add_n( [tf.count_nonzero( v > 0.001) for v in self.task_var_list] )
 
 			self.total_loss = self.surr_loss + self.l1_norm
 
