@@ -6,8 +6,12 @@ from os import listdir
 
 # LAMBDA2_list = np.logspace(-1,3,101)
 # LAMBDA2_list = np.concatenate((LAMBDA2_list[:-1], np.logspace(3,6,101), np.logspace(6,9,101)), axis = 0)
-
-filename_list = ['../Data/arv/trpo_stl_Jan29/task_%i_exp%i/shelve_result'%(j,i) for j in range(10) for i in range(10)]
+g_list = [-5., -2.5, 0., 2.5, 5.]
+w_list = [-3., -1.5, 0., 1.5, 3.]
+filename_list = ['Data/dm_control/stl/walker_walk/w%1.1fg0.0/exp0/shelve_result'%i for i in w_list]
+# filename_list = ['Data/checkpoint/stl/walker2d_exp%i_nogoal/shelve_result'%i for i in range(2)]
+# filename_list = ['Data/checkpoint/stl/exp%i/shelve_result'%i for i in range(5)]
+# filename_list = ['../Data/arv/walker2d_trpo_stl_Feb12/walker2d_exp%i_nogoal/shelve_result'%i for i in range(2)]
 shelf_list = [shelve.open(filename) for filename in filename_list]
 # pdb.set_trace()
 all_result = []
@@ -15,6 +19,7 @@ for filename, shelf in zip(filename_list, shelf_list):
 	try:	
 		all_result.append(shelf['saving_result'])
 		print('good     '+filename)
+		# print(shelf['goal'])
 		# all_result = [shelf['saving_result'] for shelf in shelf_list]
 	except:
 		print('bad      '+filename)
@@ -22,23 +27,36 @@ for filename, shelf in zip(filename_list, shelf_list):
 key_list = all_result[0].keys()
 all_result = dict([ (key, np.array([result[key] for result in all_result]) ) for key in key_list])
 plt.figure(1)
-x_data = np.arange(200)
-x_err_data = np.arange(0,200,10)
-for i, (key, data) in enumerate(all_result.iteritems()):
+x_data = np.arange(500)
+x_err_data = np.arange(0,500,5)
+
+
+try:
+	del all_result['iteration_number']
+	del all_result['s_vector']
+
+except:
+	pass
+
+for i, (key, data) in enumerate(all_result.items()):
 	# print(i)
 	plt.subplot(2,4,i + 1)
 	plt.title(key)
-	mean_data = np.mean(data, axis = 0)
-	std_data = np.std(data, axis = 0)
+	mean_data = np.mean(data, axis = 0)[x_data]
+	print(key, mean_data.shape)
+	std_data = np.std(data, axis = 0)[x_data]
 	plt.plot( mean_data )
-	plt.errorbar( x_err_data, mean_data[x_err_data], std_data[x_err_data] )
-	plt.xlim(-1,200)
+	# plt.errorbar( x_err_data, mean_data[x_err_data], std_data[x_err_data] )
+	plt.xlim(-1,x_data[-1])
+
 	plt.grid()
 
 # plt.subplot(2,4,8)
 plt.figure(2)
 plt.title('single task return')
 [plt.plot(y) for y in all_result['average_return']]
+plt.grid()
+plt.legend('12345')
 plt.show()
 
 

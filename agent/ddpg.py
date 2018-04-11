@@ -5,6 +5,7 @@ import scipy.signal
 import sys, time, os
 from utils.utils import *
 from agent import Agent
+from dm_control.rl.control import flatten_observation
 
 class DDPGagent(Agent):
 
@@ -57,7 +58,11 @@ class DDPGagent(Agent):
 		action = self.actor.get_action(state)
 		action = [action] if len(np.shape(action)) == 0 else action
 		action = np.array(action) + self.noise.noise() 
-		next_state, reward, terminal, _ = self.env.step(action)
+		# next_state, reward, terminal, _ = self.env.step(action)
+		time_step, reward, _, next_state = self.env.step(action)
+		terminal = time_step.last()
+		next_state = flatten_observation(next_state)
+		next_state = next_state.values()[0]
 		self.replay_buffer.add_sample(state, action, reward, next_state, terminal)
 		if self.pms.render:
 			self.env.render()
@@ -94,6 +99,8 @@ class DDPGagent(Agent):
 		dict_keys = ['total_return', 'time_step', 'critic_loss', 'end_iter_num', 'sample_time', 'train_time']
 		saving_result = dict([(v, []) for v in dict_keys])
 		state = self.env.reset()
+		state = flatten_observation(state[-1])
+		state = state.values()[0]
 		iter_num = 0
 		episode_num = 0
 		while iter_num < self.pms.max_iter:
@@ -123,6 +130,8 @@ class DDPGagent(Agent):
 				time_step += 1
 				if terminate:
 					state = self.env.reset()
+					state = flatten_observation(state[-1])
+					state = state.values()[0]
 					break
 				state = next_state
 			episode_num += 1

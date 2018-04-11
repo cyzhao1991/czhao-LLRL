@@ -24,11 +24,22 @@ class GaussianActor(Actor):
 	def __init__(self, net, sess, pms):
 		super(GaussianActor, self).__init__(net, sess, pms)
 		with tf.name_scope(self.pms.name_scope):
-			self.action_logstd_param = tf.Variable( (0.01*np.random.randn(1, self.net.output_dim)).astype(np.float32) ,name = 'weights_logstd')
-			self.action_logstd = tf.tile(self.action_logstd_param, tf.stack( [tf.shape(self.output_net)[0] ,1] ) )
+			self.action_logstd = tf.Variable( (np.zeros([1, self.net.output_dim])).astype(np.float32) ,name = 'weights_logstd')
+			# self.action_logstd = tf.tile(self.action_logstd_param, tf.stack( [tf.shape(self.output_net)[0] ,1] ) )
 			self.action_std = tf.exp(self.action_logstd)
-			self.action_std = tf.maximum(self.action_std, self.pms.min_std)
-			self.action_std = tf.minimum(self.action_std, self.pms.max_std)
+
+			if isinstance(self.pms.min_std, float):
+				min_std = np.ones([1, self.net.output_dim]) * self.pms.min_std
+			else:
+				min_std = self.pms.min_std
+			if isinstance(self.pms.max_std, float):
+				max_std = np.ones([1, self.net.output_dim]) * self.pms.max_std
+			else:
+				max_std = self.pms.max_std
+
+			self.action_std = tf.clip_by_value(self.action_std, min_std, max_std)
+			# self.action_std = tf.maximum(self.action_std, self.pms.min_std)
+			# self.action_std = tf.minimum(self.action_std, self.pms.max_std)
 		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.pms.name_scope)]
 	def get_action(self, inputs, contexts = None):
 
@@ -41,8 +52,52 @@ class GaussianActor(Actor):
 			feed_dict = {self.input_ph: inputs, self.context_ph: contexts}
 		else:
 			feed_dict = {self.input_ph: inputs}
-		a_mean, a_std, a_logstd = self.sess.run([self.output_net, self.action_std, self.action_logstd], feed_dict = feed_dict)
-		a_mean, a_std, a_logstd = map(np.squeeze, [a_mean, a_std, a_logstd])
+		a_mean, a_std = self.sess.run([self.output_net, self.action_std], feed_dict = feed_dict)
+		a_mean, a_std = map(np.squeeze, [a_mean, a_std])
+		a_logstd = np.log(a_std)
+		# a_mean = np.tanh(a_mean) * self.pms.max_action
+		if self.pms.train_flag:
+			action = np.random.normal( a_mean, a_std ) 
+		else:
+			action = a_mean
+		return action, dict(mean = a_mean, std = a_std,logstd = a_logstd)
+
+class GreedyActor(Actor):
+
+	def __init__(self, net, sess, pms):
+		super(GaussianActor, self).__init__(net, sess, pms)
+		with tf.name_scope(self.pms.name_scope):
+			self.action_logstd = tf.Variable( (np.zeros([1, self.net.output_dim])).astype(np.float32) ,name = 'weights_logstd')
+			# self.action_logstd = tf.tile(self.action_logstd_param, tf.stack( [tf.shape(self.output_net)[0] ,1] ) )
+			self.action_std = tf.exp(self.action_logstd)
+
+			if isinstance(self.pms.min_std, float):
+				min_std = np.ones([1, self.net.output_dim]) * self.pms.min_std
+			else:
+				min_std = self.pms.min_std
+			if isinstance(self.pms.max_std, float):
+				max_std = np.ones([1, self.net.output_dim]) * self.pms.max_std
+			else:
+				max_std = self.pms.max_std
+
+			self.action_std = tf.clip_by_value(self.action_std, min_std, max_std)
+			# self.action_std = tf.maximum(self.action_std, self.pms.min_std)
+			# self.action_std = tf.minimum(self.action_std, self.pms.max_std)
+		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.pms.name_scope)]
+	def get_action(self, inputs, contexts = None):
+
+		if len(inputs.shape) < 2:
+			inputs = inputs[np.newaxis,:]
+		if contexts is not None and len(contexts.shape) < 2:
+			contexts = contexts[np.newaxis, :]
+
+		if self.pms.with_context:
+			feed_dict = {self.input_ph: inputs, self.context_ph: contexts}
+		else:
+			feed_dict = {self.input_ph: inputs}
+		a_mean, a_std = self.sess.run([self.output_net, self.action_std], feed_dict = feed_dict)
+		a_mean, a_std = map(np.squeeze, [a_mean, a_std])
+		a_logstd = np.log(a_std)
 		# a_mean = np.tanh(a_mean) * self.pms.max_action
 		if self.pms.train_flag:
 			action = np.random.normal( a_mean, a_std ) 

@@ -8,30 +8,38 @@ from actor.actor import DeterministicActor
 from agent.ddpg import DDPGagent
 from utils.replay_buffer import ReplayBuffer
 from utils.ounoise import OUNoise
-from env.cartpole import CartPoleEnv
+# from env.cartpole import CartPoleEnv
 from model.net import *
 from utils.paras import Paras_base
+from dm_control.suite import walker
 
 def main(gpu_num, exp_num, env = None):
-	dir_name = 'Data/checkpoint/'
+	dir_name = 'Data/checkpoint/ddpg_stl/exp%i/'%exp_num
 	# dir_name = '/disk/scratch/chenyang/Data/trpo_stl/exp%i/'%(exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
 
-	with open('log.txt', 'a') as text_file:
-		text_file.write('gpu %i exp %i started.\n'%(gpu_num, exp_num))
+	# with open('log.txt', 'a') as text_file:
+	# 	text_file.write('gpu %i exp %i started.\n'%(gpu_num, exp_num))
+	env = walker.walk()
+	act_spec = env.action_spec()
+	obs_spec = env.observation_spec()
+	act_size = act_spec.shape[0]
+	max_action = act_spec.maximum
+	obs_size = np.sum(np.sum([s.shape for s in obs_spec.values()])) + 1
 
 	with tf.device('/gpu:%i'%(gpu_num)):
 		pms = Paras_base().pms
 		pms.save_model = True
 		pms.save_dir = dir_name
 		env = CartPoleEnv() if env is None else env
-		action_size = env.action_space.shape[0]
-		observation_size = env.observation_space.shape[0]
-		max_action = env.action_space.high[0]
-		pms.obs_shape = observation_size
+		# action_size = act_size
+		# observation_size = env.observation_space.shape[0]
+		# max_action = env.action_space.high[0]
+		pms.obs_shape = obs_size
 		pms.max_iter = 1000000
-		pms.action_shape = action_size
+		pms.max_time_step = 1000
+		pms.action_shape = act_size
 		pms.max_action = max_action
 		pms.num_of_paths = 100
 		pms.name_scope = 'ddpg'
@@ -48,7 +56,6 @@ def main(gpu_num, exp_num, env = None):
 		critic_target_net = Fcnn(sess, pms.obs_shape+pms.action_shape, 1, [400, 300], name = pms.name_scope+'_critic_t', if_bias = [False], activation = ['relu', 'relu', 'None'], input_tf = critic_input_ph)
 		critic_net.state_ph = state_ph
 		critic_net.action_ph = action_ph
-		print('sth')
 		actor = DeterministicActor(actor_net, sess, pms)
 		actor_target = DeterministicActor(actor_net, sess, pms)
 

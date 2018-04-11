@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 
@@ -15,12 +16,12 @@ def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
 
     fmtstr = "%10i %10.3g %10.3g"
     titlestr = "%10s %10s %10s"
-    if verbose: print titlestr % ("iter", "residual norm", "soln norm")
+    if verbose: print(titlestr % ("iter", "residual norm", "soln norm"))
 
-    for i in xrange(cg_iters):
+    for i in range(cg_iters):
         if callback is not None:
             callback(x)
-        if verbose: print fmtstr % (i, rdotr, np.linalg.norm(x))
+        if verbose: print(fmtstr % (i, rdotr, np.linalg.norm(x)))
         z = f_Ax(p)
         v = rdotr / (p.dot(z) + 1e-8)
         x += v * p
@@ -35,7 +36,7 @@ def cg(f_Ax, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
 
     if callback is not None:
         callback(x)
-    if verbose: print fmtstr % (i + 1, rdotr, np.linalg.norm(x))  # pylint: disable=W0631
+    if verbose: print(fmtstr % (i + 1, rdotr, np.linalg.norm(x)))  # pylint: disable=W0631
     return x
 
 def preconditioned_cg(f_Ax, f_Minvx, b, cg_iters=10, callback=None, verbose=False, residual_tol=1e-10):
@@ -50,12 +51,12 @@ def preconditioned_cg(f_Ax, f_Minvx, b, cg_iters=10, callback=None, verbose=Fals
 
     fmtstr = "%10i %10.3g %10.3g"
     titlestr = "%10s %10s %10s"
-    if verbose: print titlestr % ("iter", "residual norm", "soln norm")
+    if verbose: print(titlestr % ("iter", "residual norm", "soln norm"))
 
-    for i in xrange(cg_iters):
+    for i in range(cg_iters):
         if callback is not None:
             callback(x, f_Ax)
-        if verbose: print fmtstr % (i, ydotr, np.linalg.norm(x))
+        if verbose: print(fmtstr % (i, ydotr, np.linalg.norm(x)))
         z = f_Ax(p)
         v = ydotr / p.dot(z)
         x += v * p
@@ -70,7 +71,7 @@ def preconditioned_cg(f_Ax, f_Minvx, b, cg_iters=10, callback=None, verbose=Fals
         if ydotr < residual_tol:
             break
 
-    if verbose: print fmtstr % (cg_iters, ydotr, np.linalg.norm(x))
+    if verbose: print(fmtstr % (cg_iters, ydotr, np.linalg.norm(x)))
 
     return x
 
@@ -79,7 +80,7 @@ def test_cg():
     A = A.T.dot(A)
     b = np.random.randn(5)
     x = cg(lambda x: A.dot(x), b, cg_iters=5, verbose=True)  # pylint: disable=W0108
-    print A.dot(x) - b
+    print(A.dot(x) - b)
     assert np.allclose(A.dot(x), b)
 
     x = preconditioned_cg(lambda x: A.dot(x), lambda x: np.linalg.solve(A, x), b, cg_iters=5,
@@ -107,7 +108,7 @@ def lanczos(f_Ax, b, k):
     q = b / np.linalg.norm(b)
     beta = 0
     qm = np.zeros_like(b)
-    for j in xrange(k):
+    for j in range(k):
         qs.append(q)
 
         z = f_Ax(q)
@@ -119,9 +120,9 @@ def lanczos(f_Ax, b, k):
         beta = np.linalg.norm(z)
         betas.append(beta)
 
-        print "beta", beta
+        print("beta", beta)
         if beta < 1e-9:
-            print "lanczos: early after %i/%i dimensions" % (j + 1, k)
+            print("lanczos: early after %i/%i dimensions" % (j + 1, k))
             break
         else:
             qm = q
@@ -144,7 +145,7 @@ def lanczos2(f_Ax, b, k, residual_thresh=1e-9):
     q = b / np.linalg.norm(b)
     beta = 0
 
-    for j in xrange(k):
+    for j in range(k):
         qs.append(q)
 
         z = f_Ax(q.astype('float64')).astype('float64')
@@ -154,7 +155,7 @@ def lanczos2(f_Ax, b, k, residual_thresh=1e-9):
 
         beta = np.linalg.norm(z)
         if beta < residual_thresh:
-            print "lanczos2: stopping early after %i/%i dimensions residual %f < %f" % (j + 1, k, beta, residual_thresh)
+            print("lanczos2: stopping early after %i/%i dimensions residual %f < %f" % (j + 1, k, beta, residual_thresh))
             break
         else:
             q = z / beta
@@ -190,26 +191,26 @@ def test_lanczos():
     Q, H1 = lanczos2(f_Ax, b, 10)
     assert np.allclose(H, H1, atol=1e-6)
 
-    print "ritz eigvals:"
-    for i in xrange(1, 6):
+    print("ritz eigvals:")
+    for i in range(1, 6):
         Qi = Q[:, :i]
         Hi = Qi.T.dot(A).dot(Qi)
-        print np.linalg.eigvalsh(Hi)[::-1]
-    print "true eigvals:"
-    print np.linalg.eigvalsh(A)[::-1]
+        print(np.linalg.eigvalsh(Hi)[::-1])
+    print("true eigvals:")
+    print(np.linalg.eigvalsh(A)[::-1])
 
-    print "lanczos on ill-conditioned problem"
+    print("lanczos on ill-conditioned problem")
     A = np.diag(10 ** np.arange(5))
     Q, H1 = lanczos2(f_Ax, b, 10)
-    print np.linalg.eigvalsh(H1)
+    print(np.linalg.eigvalsh(H1))
 
-    print "lanczos on ill-conditioned problem with noise"
+    print("lanczos on ill-conditioned problem with noise")
 
     def f_Ax_noisy(x):
         return A.dot(x) + np.random.randn(x.size) * 1e-3
 
     Q, H1 = lanczos2(f_Ax_noisy, b, 10)
-    print np.linalg.eigvalsh(H1)
+    print(np.linalg.eigvalsh(H1))
 
 def compute_hessian(fn, vars):
     mat = []

@@ -27,7 +27,7 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 	suffix = kwargs.get('suffix', '')
 	# task_num = kwarg.get('task_num', 0)
 	# num_of_paths = kwarg.get('num_of_paths', 100)
-	dir_name = 'Data/dm_control/context_mtl/%s/exp%i%s/'%('walker_walk',exp_num, suffix)
+	dir_name = 'Data/dm_control/transfer_mtl/%s/exp%i%s/'%('walker_walk',exp_num, suffix)
 	# dir_name = '/disk/scratch/chenyang/Data/context_trpo_path10/mod_%i_exp%i/'%(mod_num, exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
@@ -61,9 +61,8 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 	# context_list = np.insert(context_g, 0, 1, axis = 1)
 	# env = Walker2dEnv()
 	env = walker.walk()
-	# context_range = np.array([1., 0., 1.])
-	# env_contexts = np.array([[i, 0, j] for i in [-1. , -.5, 0., .5, 1.] for j in [-1., -.5, 0., .5, 1. ]])
-	env_contexts = np.array([-1., -.75, -.5, -.25, 0., .25, .5, .75, 1.])[:, np.newaxis]
+	context_range = np.array([10., 0., 10.])
+
 	act_spec = env.action_spec()
 	obs_spec = env.observation_spec()
 	act_size = act_spec.shape[0]
@@ -79,32 +78,31 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 		pms.action_shape = act_size
 		pms.max_action = max_action
 		pms.num_of_paths = num_of_paths
-		pms.max_iter = 1000
+		pms.max_iter = 500
 		pms.max_time_step = 1000
-		pms.max_total_time_step = 50000
+		pms.max_total_time_step = 45000
 		pms.subsample_factor = 0.1
 		pms.max_kl = 0.1
 		pms.min_std = 0.01
-		pms.env_name = 'walker_walk'
+		pms.env_name = 'walker_stand'
 		# pms.contextual_method = 'concatenate'
 		# pms.l1_regularizer = 0.01
-		pms.context_shape = 2
-		pms.warm_up_iter = 200
-		pms.joint_learn_iter = 300
+		pms.context_shape = 4
 		# pms.max_time_step = 500
 		# pms.env_name = 'reacher'
-
+		pms.independent_std = False
 		config = tf.ConfigProto(allow_soft_placement = True)
 		config.gpu_options.per_process_gpu_memory_fraction = 0.3
 		config.gpu_options.allow_growth = True
+
 		sess = tf.Session(config = config)
 
 		# tf_goal_list = tf.constant(goal_list, tf.float32, name = 'goal_list')
 		# tf_context_list = tf.constant(context_list, tf.float32, name = 'goal_list')
-		# actor_net = Concat_Context_Fcnn_Net(sess, pms.obs_shape, pms.action_shape, pms.context_shape, [100,50,25], name = pms.name_scope,\
-		# 	if_bias = [False], activation = ['tanh', 'tanh', 'tanh','None'], init = [.1, .1, .1, .01])
+		# actor_net = Concat_Context_Fcnn_Net(sess, pms.obs_shape, pms.action_shape, pms.context_shape, [64,64], name = pms.name_scope,\
+		# 	if_bias = [False], activation = ['tanh', 'tanh', 'None'], init = [1., 1., .01])
 		actor_net = Context_Fcnn_Net(sess, pms.obs_shape, pms.action_shape, pms.context_shape, [100,50,25], [mod_num,mod_num,mod_num,mod_num],\
-			name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'tanh','None'], init = [.1, .1, .1, .01])
+			name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'tanh','None'], init = [.1, .1, .1, 0.01])
 		actor = Context_Gaussian_Actor(actor_net, sess, pms)
 		
 		baseline_net = Concat_Context_Fcnn_Net(sess, pms.obs_shape, 1, pms.context_shape, [100,50,25], name = 'baseline',\
@@ -112,15 +110,21 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 		baseline = Context_Baseline(baseline_net, sess, pms)
 		# baseline = BaselineZeros(sess, pms)
 
-		# learn_agent = Context_TRPO_Agent(env, actor, baseline, sess, pms, [None], context_range = context_range)
-		learn_agent = Context_TRPO_Agent(env, actor, baseline, sess, pms, [None], env_contexts = env_contexts)
+		learn_agent = Context_TRPO_Agent(env, actor, baseline, sess, pms, [None], context_range = context_range)
 
 	saver = tf.train.Saver()
 	learn_agent.saver = saver
 	with tf.device('/gpu:%i'%(gpu_num)):
 		sess.run(tf.global_variables_initializer())
+	model_file = 'Data/dm_control/stl/walker_run/exp4/walker_run-iter490.ckpt'
+	learn_agent.saver.restore(sess, model_file)
+	learned_s_vector = np.array(sess.run(learn_agent.task_var_list))
 
-	# tf.get_default_graph().finalize()
+
+	learn_agent.update_vars()
+	pdb.set_trace()
+	tf.get_default_graph().finalize()
+
 
 
 	saving_result = learn_agent.learn()

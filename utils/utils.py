@@ -40,10 +40,24 @@ def kl_sym_firstfixed(mean, logstd):
 
 def linesearch(f, x, fullstep, max_backtracks, max_kl):
 	fval, kl = f(x)
-	for step_frac in .3**np.arange(max_backtracks):
+	for step_frac in .5**np.arange(max_backtracks):
 		new_x = x + step_frac*fullstep
 		newfval, newkl = f(new_x)
 		if newfval < fval and newkl < max_kl:
 			# print('valid gradient')
 			return new_x
 	return x
+
+def linesearch_new(f, x, fullstep, max_backtracks, max_kl):
+	fval, l0, kl = f(x)
+	for step_frac in .5**np.arange(max_backtracks):
+		new_x = x + step_frac*fullstep
+		newfval, newl0, newkl = f(new_x)
+		if newfval <= fval and newl0 <= l0 and newkl <= max_kl:
+			print('valid gradient', newl0 - l0, step_frac)
+			return new_x
+	print('failed, fullstep')
+	return x
+
+def entropy(logstds):
+	return tf.reduce_sum(logstds + .5 * np.log(2.*np.pi*np.e), axis = -1)

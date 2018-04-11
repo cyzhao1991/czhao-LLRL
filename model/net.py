@@ -14,6 +14,7 @@ class Net(object):
 		self.all_layer_dim = np.concatenate([[self.input_dim], layer_dim, [self.output_dim]], axis = 0).astype(int)
 		self.if_bias = kwargs.get('if_bias', ([True] * len(layer_dim))+[False] )
 		self.activation_fns = kwargs.get( 'activation', (['tanh']*len(layer_dim))+['None'])
+		self.initialize_value = kwargs.get('init', None)
 		if len(self.if_bias) == 1:
 			self.if_bias *= len(layer_dim) + 1
 		if len(self.activation_fns) == 1:
@@ -43,23 +44,25 @@ class Fcnn(Net):
 	def build(self, input_tf, name):
 		
 		with tf.name_scope(name):
-			net = [input_tf]
+			net = input_tf
 			weights = []
 			if np.any(self.if_bias):
 				bias = []
 
 			for i, (dim_1, dim_2) in enumerate( zip(self.all_layer_dim[:-1], self.all_layer_dim[1:]) ):
 				if self.if_bias[i]:
-					weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = 1.0), name = 'theta_%i'%i))
-					bias.append( tf.Variable (tf.truncated_normal([dim_2], stddev = 1.0), name = 'bias_%i'%i))
-					net.append( self.activation_fns_call[i]( tf.matmul(net[i], weights[i]) + bias[-1] ))
+					init_v = self.initialize_value[i] if self.initialize_value is not None else .1
+					weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = init_v), name = 'theta_%i'%i))
+					bias.append( tf.Variable (tf.truncated_normal([dim_2], stddev = init_v), name = 'bias_%i'%i))
+					net = self.activation_fns_call[i]( tf.matmul(net, weights[i]) + bias[-1] )
 					
 				else:
 					# print(dim_1,dim_2)
-					weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = 1.0), name = 'theta_%i'%i))
-					net.append( self.activation_fns_call[i]( tf.matmul(net[i], weights[i]) ))
+					init_v = self.initialize_value[i] if self.initialize_value is not None else .1
+					weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = init_v), name = 'theta_%i'%i))
+					net = self.activation_fns_call[i]( tf.matmul(net, weights[i]) )
 
-			return net[-1]
+			return net
 
 
 class Modular_Fcnn(Net):
