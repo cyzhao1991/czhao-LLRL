@@ -51,4 +51,4 @@ target_speed = [-4., -1., 0., 1., 4.]
 # for g in gravity_list:
 for i in range(5):
 	tf.reset_default_graph()
-	main(gpu_num, i, gravity = gravity_list[2], wind = wind_list[4])
+	main(gpu_num, i, gravity = gravity_list[2], wind = wind_list[0], speed = target_speed[0])
