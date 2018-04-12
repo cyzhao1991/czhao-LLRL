@@ -28,7 +28,7 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 	wind = kwargs.get('wind', 0.)
 	gravity = kwargs.get('gravity', 0.)
 	# dir_name = 'Data/dm_control/stl/%s/w%1.1fg%1.1f/exp%i/'%('walker_run', wind, gravity, exp_num)
-	dir_name = '/disk/scratch/chenyang/Data/dm_control/stl/walker_s%1.1f/w%1.1fg%1.1f/exp%i/'*(speed, wind, gravity, exp_num)
+	dir_name = '/disk/scratch/chenyang/Data/dm_control/stl/walker_s%1.1f/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
 	# dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
