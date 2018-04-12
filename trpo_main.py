@@ -24,9 +24,11 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 
 	task_num = kwargs.get('task_num', 0)
 	num_of_paths = kwargs.get('num_of_paths', 10)
+	speed = kwargs.get('speed', 0.)
 	wind = kwargs.get('wind', 0.)
 	gravity = kwargs.get('gravity', 0.)
-	dir_name = 'Data/dm_control/stl/%s/w%1.1fg%1.1f/exp%i/'%('walker_run', wind, gravity, exp_num)
+	# dir_name = 'Data/dm_control/stl/%s/w%1.1fg%1.1f/exp%i/'%('walker_run', wind, gravity, exp_num)
+	dir_name = '/disk/scratch/chenyang/Data/dm_control/stl/walker_s%1.1f/w%1.1fg%1.1f/exp%i/'*(speed, wind, gravity, exp_num)
 	# dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
@@ -43,7 +45,7 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 	# env = walker.run()
 	env = Walker2dEnv()
 	env.reward_type = 'bound'
-	env.target_value = 8.
+	env.target_value = speed
 	env.model.opt.gravity[0] += wind
 	env.model.opt.gravity[2] += gravity
 	# env = cartpole.balance()
@@ -69,7 +71,7 @@ def main(gpu_num, exp_num, env = None, **kwargs):
 		pms.subsample_factor = .1
 		pms.max_kl = 0.1
 		pms.min_std = 0.01
-		pms.env_name = 'walker_run'
+		pms.env_name = 'walker'
 		pms.max_total_time_step = 50000
 		config = tf.ConfigProto(allow_soft_placement = True)
 		config.gpu_options.per_process_gpu_memory_fraction = 0.1

@@ -8,7 +8,7 @@ from os import listdir
 # LAMBDA2_list = np.concatenate((LAMBDA2_list[:-1], np.logspace(3,6,101), np.logspace(6,9,101)), axis = 0)
 g_list = [-5., -2.5, 0., 2.5, 5.]
 w_list = [-3., -1.5, 0., 1.5, 3.]
-filename_list = ['Data/dm_control/stl/walker_walk/w%1.1fg0.0/exp0/shelve_result'%i for i in w_list]
+filename_list = ['Data/dm_control/stl/walker_stand/w%1.1fg0.0/exp0/shelve_result'%i for i in w_list]
 # filename_list = ['Data/checkpoint/stl/walker2d_exp%i_nogoal/shelve_result'%i for i in range(2)]
 # filename_list = ['Data/checkpoint/stl/exp%i/shelve_result'%i for i in range(5)]
 # filename_list = ['../Data/arv/walker2d_trpo_stl_Feb12/walker2d_exp%i_nogoal/shelve_result'%i for i in range(2)]

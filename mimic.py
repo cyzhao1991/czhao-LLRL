@@ -77,7 +77,7 @@ with tf.device('/gpu:%i'%(0)):
 	pms.max_action = max_action
 	pms.num_of_paths = 10
 	pms.subsample_factor = 0.1
-	pms.max_time_step = 1000
+	pms.max_time_step = 500
 	pms.env_name = 'walker_stand'
 	pms.train_flag = False
 	pms.context_shape = 3
