@@ -76,9 +76,10 @@ class MtlMimicAgent(Agent):
 		self.output_ph = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'output_placeholder')
 		self.optimizer = tf.train.AdamOptimizer()
 		self.mse_loss = tf.losses.mean_squared_error(self.output_ph, self.output)
-		self.l2_loss = 0.001* tf.add_n( [tf.nn.l2_loss(v) for v in self.KB_var_list] )
-		self.l1_loss = 0.001 * tf.add_n( [tf.reduce_sum(tf.abs(v)) for v in self.s_var_list] )
-		self.loss = self.mse_loss + self.l2_loss + self.l1_loss
+		self.l2_loss = 0.0005* tf.add_n( [tf.nn.l2_loss(v) for v in self.KB_var_list] )
+		self.l1_loss = 0.0005 * tf.add_n( [tf.reduce_sum(tf.abs(v)) for v in self.s_var_list] )
+		self.column_loss = 0.001 * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.s_var_list] ) 
+		self.loss = self.mse_loss + self.l2_loss + self.l1_loss + self.column_loss
 		self.gradients = self.optimizer.compute_gradients( self.loss, var_list = self.var_list )
 		self.gradients = [v[0] for v in self.gradients]
 		self.gradients_ph = [tf.placeholder(tf.float32, v.shape) for v in self.var_list]
@@ -88,7 +89,7 @@ class MtlMimicAgent(Agent):
 
 	def learn(self, x1, x2, y):
 		data_size, _ = x1.shape
-		for itern in range(10000):
+		for itern in range(5000):
 			idx = np.random.permutation(data_size)
 			start = 0
 			batch_gradients = []

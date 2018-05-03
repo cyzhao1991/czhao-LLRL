@@ -6,9 +6,16 @@ from os import listdir
 
 # LAMBDA2_list = np.logspace(-1,3,101)
 # LAMBDA2_list = np.concatenate((LAMBDA2_list[:-1], np.logspace(3,6,101), np.logspace(6,9,101)), axis = 0)
+s_list = [-4., -2., -1., 0., 1., 2., 4.]
 g_list = [-5., -2.5, 0., 2.5, 5.]
-w_list = [-3., -1.5, 0., 1.5, 3.]
-filename_list = ['Data/dm_control/stl/walker_stand/w%1.1fg0.0/exp0/shelve_result'%i for i in w_list]
+# w_list = [-3., -1.5, 0., 1.5, 3.]
+w_list = [-4, -2, -1, 0, 1, 2, 4]
+mtl_w_list = [-3, -2, 1, 3]
+filename_list = ['Data/dm_control/finetune/walker_s%1.1f/w0.0g0.0/exp1/shelve_result'%i for i in s_list]
+# filename_list = ['Data/dm_control/finetune/walker_s1.0/w%1.1fg0.0/exp2/shelve_result'%i for i in w_list]
+# filename_list = ['Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp0/shelve_result'%i for i in mtl_w_list]
+# filename_list = ['Data/dm_control/stl/walker_stand/exp%i/shelve_result'%i for i in range(5)]
+
 # filename_list = ['Data/checkpoint/stl/walker2d_exp%i_nogoal/shelve_result'%i for i in range(2)]
 # filename_list = ['Data/checkpoint/stl/exp%i/shelve_result'%i for i in range(5)]
 # filename_list = ['../Data/arv/walker2d_trpo_stl_Feb12/walker2d_exp%i_nogoal/shelve_result'%i for i in range(2)]
@@ -25,10 +32,10 @@ for filename, shelf in zip(filename_list, shelf_list):
 		print('bad      '+filename)
 
 key_list = all_result[0].keys()
-all_result = dict([ (key, np.array([result[key] for result in all_result]) ) for key in key_list])
+all_result = dict([ (key, np.array([np.array(result[key]) for result in all_result]) ) for key in key_list])
 plt.figure(1)
 x_data = np.arange(500)
-x_err_data = np.arange(0,500,5)
+x_err_data = np.arange(0,500,10)
 
 
 try:
@@ -45,7 +52,7 @@ for i, (key, data) in enumerate(all_result.items()):
 	mean_data = np.mean(data, axis = 0)[x_data]
 	print(key, mean_data.shape)
 	std_data = np.std(data, axis = 0)[x_data]
-	plt.plot( mean_data )
+	plt.plot( mean_data, linewidth = .3)
 	# plt.errorbar( x_err_data, mean_data[x_err_data], std_data[x_err_data] )
 	plt.xlim(-1,x_data[-1])
 
@@ -54,9 +61,9 @@ for i, (key, data) in enumerate(all_result.items()):
 # plt.subplot(2,4,8)
 plt.figure(2)
 plt.title('single task return')
-[plt.plot(y) for y in all_result['average_return']]
+[plt.plot(y, linewidth = .3) for y in all_result['average_return']]
 plt.grid()
-plt.legend('12345')
+plt.legend('1234567')
 plt.show()
 
 

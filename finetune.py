@@ -32,9 +32,9 @@ tf.reset_default_graph()
 '''
 contextual policy
 '''
-mod_num = 5 #kwargs.get('mod_num', 10)
-num_of_paths = 10#kwargs.get('num_of_paths', 10)
-num_of_tasks = 10#kwargs.get('num_of_tasks', 10)
+# mod_num = 5 #kwargs.get('mod_num', 10)
+# num_of_paths = 10#kwargs.get('num_of_paths', 10)
+# num_of_tasks = 10#kwargs.get('num_of_tasks', 10)
 # task_num = kwarg.get('task_num', 0)
 # num_of_paths = kwarg.get('num_of_paths', 100)
 
@@ -146,7 +146,7 @@ stl
 '''
 
 num_of_paths = 10
-dir_name = 'Data/dm_control/stl/walker_walk/w0.0g-5.0/exp0/'
+# dir_name = 'Data/dm_control/stl/walker_walk/w0.0g-5.0/exp0/'
 # dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 # with open('log.txt', 'a') as text_file:
 # 	text_file.write('gpu %i exp %i started.\n'%(gpu_num, exp_num))
@@ -160,20 +160,17 @@ dir_name = 'Data/dm_control/stl/walker_walk/w0.0g-5.0/exp0/'
 # act_size = act_spec.shape[0]
 # max_action = act_spec.maximum
 # obs_size = np.sum(np.sum([s.shape for s in obs_spec.values()])) + 1
+# speed = kwargs.get('speed', 0.)
+# wind = kwargs.get('wind', 0.)
+# gravity = kwargs.get('gravity', 0.)
 
 SPEED = 1.
 GRAVITY = 0.
-WIND = 0.
-exp_num = 0
+WIND = 4.
+exp_num = 3
 speed = SPEED
 gravity = GRAVITY
 wind = WIND
-
-# env = Walker2dEnv()
-# env.reward_type = 'bound'
-# env.target_value = speed
-# env.model.opt.gravity[0] += wind
-# env.model.opt.gravity[2] += gravity
 
 env = Walker2dEnv()
 env.reward_type = 'bound'
@@ -190,6 +187,10 @@ obs_size = env.observation_space.shape[0]
 # myshelf = shelve.open('Data/checkpoint/stl/exp2/shelve_result')
 # goal = myshelf['goal']
 # goal = np.array([[ 0.05421805,  0.12854432]])
+dir_name = 'Data/dm_control/finetune/walker_s%1.1f/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
+if not os.path.isdir(dir_name):
+	os.makedirs(dir_name)
+
 with tf.device('/gpu:%i'%(0)):
 	pms = Paras_base().pms
 	pms.save_model = True
@@ -200,10 +201,14 @@ with tf.device('/gpu:%i'%(0)):
 	pms.action_shape = act_size
 	pms.max_action = max_action
 	pms.num_of_paths = num_of_paths
-	pms.subsample_factor = 0.1
+	pms.subsample_factor = 1.
 	pms.max_time_step = 1000
-	pms.env_name = 'walker_stand'
-	pms.train_flag = False
+	pms.max_iter = 1000
+	pms.max_kl = 0.01
+	pms.min_std = 0.01
+	pms.env_name = 'walker'
+	pms.train_flag = True
+	pms.max_total_time_step = 4096
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
 	config.gpu_options.allow_growth = True
@@ -225,23 +230,22 @@ sess.run(tf.global_variables_initializer())
 # learn_agent.get_single_path()
 # model_file = '../Data/arv/trpo_stl_Jan28/task_1_exp3/cartpole-iter190.ckpt'
 # model_file = 'Data/checkpoint/stl/exp0_nogoal/cartpole-iter990.ckpt'
-learn_agent.pms.render = False
-learn_agent.pms.train_flag = False
 
-wind_list = [-4, -2, -1, 0, 1, 2, 4]
-overall_mean = np.zeros([7,7])
-overall_std = np.zeros([7,7])
-for i, wind in enumerate(wind_list):
-	model_file = 'Data/dm_control/finetune/walker_s%1.1f/w%1.1fg%1.1f/exp2/walker-iter990.ckpt'%(speed, wind, gravity)
-	# model_file = 'Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp0/walker-iter990.ckpt'
-	learn_agent.saver.restore(sess, model_file)
-	for j, task_wind in enumerate(wind_list):
-		env.model.opt.gravity[0] = task_wind
-		env.target_value = 1.0#task_speed
-		stats = [learn_agent.get_single_path() for _ in range(10)]
-		overall_mean[i][j] = np.mean([np.sum(s['rewards']) for s in stats])
-		overall_std[i][j]  = np.std( [np.sum(s['rewards']) for s in stats])
-		print(i,j)
-# print([np.sum(s['rewards']) for s in stats])
+model_file = 'Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp0/walker-iter990.ckpt'
+learn_agent.saver.restore(sess, model_file)
+sess.run(tf.assign(actor.action_logstd, np.zeros([1,6]).astype(np.float32)))
+learn_agent.pms.render = False
+learn_agent.pms.train_flag = True
+saving_result = learn_agent.learn()
+
+sess.close()
+
+filename = dir_name + 'shelve_result'
+myshelf = shelve.open(filename, 'n')
+myshelf['saving_result'] = saving_result
+myshelf.close()
+# # # learn_agent..get_single_path
+# # # stats = [learn_agent.get_single_path() for _ in range(1)]
+# stats = [learn_agent.get_single_path() for _ in range(1)]
 # # # env.render(close = True)
 # print(np.mean( [np.sum(s['rewards']) for s in stats] ) )

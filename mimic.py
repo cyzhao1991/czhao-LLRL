@@ -15,30 +15,23 @@ from agent.mimic_agent import *
 from actor.context_actor import Context_Gaussian_Actor
 from model.context_net import Context_Fcnn_Net, Concat_Context_Fcnn_Net
 
-w_list = [-3., -1.5, 0., 1.5, 3. ]
-w_list_2 = [-3., 0., 1.5]
+w_list = [-3., 0., 3. ]
+w_list_2 = [-3., 0., 3.]
 task_name_list = ['w%1.1fg%1.1f'%(w, 0) for w in w_list]
 task_name_list2 = ['w%1.1fg0.0'%w for w in w_list_2]
 filename_list = ['Data/mimic_data/stand_%s.npz'%task_name for task_name in task_name_list]
 filename_list2 = ['Data/mimic_data/walk_%s.npz'%task_name for task_name in task_name_list2]
+
+w_list = [-4., -2., -1., 0., 1., 2., 4.]
+task_name_list = ['w%1.1fg0.0'%w for w in w_list]
+filename_list = ['Data/mimic_data/finetune/walker_s1.0/%s_exp2.npz'%task_name for task_name in task_name_list]
+
 all_obs = []
 all_acs = []
 all_con = []
-for filename, w in zip(filename_list, w_list):
-	pre_data = np.load(filename)
-	context = np.array([1., 0., w])
-	obs = np.concatenate(pre_data['obs'], axis = 0)
-	acs = np.concatenate(pre_data['acs'], axis = 0)
-	n,_ = obs.shape
-	con = np.tile(context, [n,1])
-
-	all_obs.append(obs)
-	all_acs.append(acs)
-	all_con.append(con)
-
-# for filename, w in zip(filename_list2, w_list_2):
+# for filename, w in zip(filename_list, w_list):
 # 	pre_data = np.load(filename)
-# 	context = np.array([0., 1., w])
+# 	context = np.array([1., 0., w])
 # 	obs = np.concatenate(pre_data['obs'], axis = 0)
 # 	acs = np.concatenate(pre_data['acs'], axis = 0)
 # 	n,_ = obs.shape
@@ -47,6 +40,20 @@ for filename, w in zip(filename_list, w_list):
 # 	all_obs.append(obs)
 # 	all_acs.append(acs)
 # 	all_con.append(con)
+i = 0
+con_matrix = np.eye(7)
+for filename, w in zip(filename_list, w_list):
+	pre_data = np.load(filename)
+	# context = np.array([0., 1., w])
+	context = con_matrix[i]
+	obs = np.concatenate(pre_data['obs'], axis = 0)
+	acs = np.concatenate(pre_data['acs'], axis = 0)
+	n,_ = obs.shape
+	con = np.tile(context, [n,1])
+	i += 1
+	all_obs.append(obs)
+	all_acs.append(acs)
+	all_con.append(con)
 
 all_obs = np.concatenate( all_obs, axis = 0 )
 all_acs = np.concatenate( all_acs, axis = 0 )
@@ -77,10 +84,10 @@ with tf.device('/gpu:%i'%(0)):
 	pms.max_action = max_action
 	pms.num_of_paths = 10
 	pms.subsample_factor = 0.1
-	pms.max_time_step = 500
-	pms.env_name = 'walker_stand'
+	pms.max_time_step = 1000
+	pms.env_name = 'walker'
 	pms.train_flag = False
-	pms.context_shape = 3
+	pms.context_shape = 7
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
 	config.gpu_options.allow_growth = True
@@ -94,5 +101,5 @@ with tf.device('/gpu:%i'%(0)):
 	sess.run(tf.global_variables_initializer())
 mimic_agent.learn(all_obs, all_con, all_acs)
 saver = tf.train.Saver()
-model_name = 'Data/mimic_data/stand_mtl_mimic_2.ckpt'
+model_name = 'Data/mimic_data/multi_wind_mimic_0.ckpt'
 saver.save(sess, model_name)

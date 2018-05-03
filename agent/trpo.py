@@ -51,6 +51,7 @@ class TRPOagent(Agent):
 			self.flat_tangent = tf.placeholder(tf.float32, shape = [None], name = 'flat_tangent')
 			kl_firstfixed = kl_sym_firstfixed(self.new_dist_mean, self.new_dist_logstd)
 			grads = tf.gradients(kl_firstfixed, self.actor.var_list) 
+			
 			flat_grads = flatten_var(grads) / batchsize
 			self.fvp = tf.gradients(tf.reduce_sum(flat_grads * self.flat_tangent), self.actor.var_list)
 			self.flat_fvp = flatten_var(self.fvp)

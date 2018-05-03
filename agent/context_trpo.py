@@ -74,27 +74,28 @@ class Context_TRPO_Agent(Agent):
 			elif self.pms.contextual_method is 'concatenate':
 				self.total_loss = self.surr_loss
 
-			# surr_grad = tf.gradients(self.total_loss, self.shared_var_list + self.task_var_list)
-			# self.flat_surr_grad = flatten_var( tf.gradients(self.total_loss, self.shared_var_list + self.task_var_list) )
+			self.total_loss = self.surr_loss
+			surr_grad = tf.gradients(self.total_loss, self.var_list)
+			self.flat_surr_grad = flatten_var( tf.gradients(self.total_loss, self.var_list) )
 			# self.flat_shared_grad = flatten_var( tf.gradients(self.total_loss, self.shared_var_list) )
 			# self.flat_task_grad = flatten_var( tf.gradients(self.total_loss, self.task_var_list) )
 
-			# batchsize = tf.cast(tf.shape(self.obs)[0], tf.float32)
-			# self.flat_tangent = tf.placeholder(tf.float32, shape = [None], name = 'flat_tangent')
-			# kl_firstfixed = kl_sym_firstfixed(self.new_dist_mean, self.new_dist_logstd)
-			# grads = tf.gradients(kl_firstfixed, self.var_list) 
-			# flat_grads = flatten_var(grads) / batchsize
-			# fvp = tf.gradients(tf.reduce_sum(flat_grads * self.flat_tangent), self.var_list)
-			# self.flat_fvp = flatten_var(fvp)
+			batchsize = tf.cast(tf.shape(self.obs)[0], tf.float32)
+			self.flat_tangent = tf.placeholder(tf.float32, shape = [None], name = 'flat_tangent')
+			kl_firstfixed = kl_sym_firstfixed(self.new_dist_mean, self.new_dist_logstd)
+			grads = tf.gradients(kl_firstfixed, self.var_list) 
+			flat_grads = flatten_var(grads) / batchsize
+			fvp = tf.gradients(tf.reduce_sum(flat_grads * self.flat_tangent), self.var_list)
+			self.flat_fvp = flatten_var(fvp)
 
 			# shared_grads = tf.gradients(kl_firstfixed, self.shared_var_list)
 			# task_grads = tf.gradients(kl_firstfixed, self.task_var_list)
 			# # self.shared_flat_fvp = flatten_var( tf.gradients(tf.reduce_sum( flatten_var(shared_grads)/batchsize*self.flat_tangent) , self.shared_var_list) )
 			# # self.task_flat_fvp = flatten_var( tf.gradients(tf.reduce_sum( flatten_var(task_grads)/batchsize*self.flat_tangent) , self.task_var_list) )
 
-			# self.weights_to_set = tf.placeholder(tf.float32, [None], name = 'weights_to_set')
-			# self.set_var_from_flat = set_from_flat(self.var_list, self.weights_to_set)
-			# self.flatten_var = flatten_var(self.var_list)
+			self.weights_to_set = tf.placeholder(tf.float32, [None], name = 'weights_to_set')
+			self.set_var_from_flat = set_from_flat(self.var_list, self.weights_to_set)
+			self.flatten_var = flatten_var(self.var_list)
 
 			# self.set_shared_from_flat = set_from_flat(self.shared_var_list, self.weights_to_set)
 			# self.set_task_from_flat = set_from_flat(self.task_var_list, self.weights_to_set)
@@ -144,7 +145,7 @@ class Context_TRPO_Agent(Agent):
 
 
 
-	def get_single_path(self, task_context):
+	def get_single_path(self, task_context, target_speed = 1., wind = 0., gravity = -9.8):
 		observations = []
 		contexts = []
 		actions = []
@@ -153,7 +154,10 @@ class Context_TRPO_Agent(Agent):
 		# grav_context = 5. * task_context[0] + self.default_context[2]
 		if self.pms.env_name.startswith('walker'):
 			# print('gravity', grav_context)
-			self.env.model.opt.gravity[0] = self.default_context[0] + task_context[-1] #grav_context[0]
+			self.env.target_value = target_speed
+			# self.env.model.opt.gravity[0] = wind
+			self.env.model.opt.gravity[2] = gravity
+			# self.env.model.opt.gravity[0] = self.default_context[0] + task_context[-1] #grav_context[0]
 			# self.env.physics.model.opt.gravity[1] = 0. #grav_context[1]
 			# self.env.physics.model.opt.gravity[2] = grav_context #[2]
 
@@ -322,8 +326,8 @@ class Context_TRPO_Agent(Agent):
 			total_time_step = total_time_step
 		)
 
-		self.baseline.fit(observations, contexts, returns)
-
+		#self.baseline.fit(observations, contexts, returns)
+		self.baseline.fit(observations, returns)
 		return sample_data
 
 	def warm_up(self, paths, var_list = None):
@@ -513,6 +517,72 @@ class Context_TRPO_Agent(Agent):
 			)
 		return flat_theta_new, flat_theta_prev, stats
 
+
+	def train_paths(self, paths):
+                sample_data = self.process_paths(paths)
+                obs_source = sample_data['observations']
+                act_source = sample_data['actions']
+                adv_source = sample_data['advantages']
+                con_source = sample_data['contexts']
+                n_samples = sample_data['total_time_step']
+                actor_info_source = sample_data['actor_infos']
+
+                episode_rewards = np.array([np.sum(path['rewards']) for path in paths])
+                train_number = int(1./self.pms.subsample_factor)
+                step_gradients = []
+
+                flat_theta_prev = self.sess.run(self.flatten_var)
+
+                for iteration in range(train_number):
+                        inds = np.random.choice(n_samples, int(np.floor(n_samples*self.pms.subsample_factor)), replace = False)
+                        obs_n = obs_source[inds]
+                        act_n = act_source[inds]
+                        adv_n = adv_source[inds]
+                        con_n = con_source[inds]
+                        act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[inds]])
+                        act_dis_logstd_n = np.array([a_info['logstd'] for a_info in actor_info_source[inds]])
+
+                        feed_dict = {self.obs: obs_n,
+                                                 self.advant: adv_n,
+                                                 self.action: act_n,
+                                                 self.context: con_n,
+                                                 self.old_dist_mean: act_dis_mean_n,#[:,np.newaxis],
+                                                 self.old_dist_logstd: act_dis_logstd_n#[:,np.newaxis]
+                                                 }
+
+                        def fisher_vector_product(p):
+                                feed_dict[self.flat_tangent] = p
+                                return self.sess.run(self.flat_fvp, feed_dict = feed_dict) + self.pms.cg_damping * p
+
+                        step_gradients.append( self.sess.run(self.flat_surr_grad, feed_dict = feed_dict) )
+                        # print([g, np.amax(g), np.amin(g)])
+                g = np.nanmean(step_gradients, axis = 0)
+                step_gradient = cg(fisher_vector_product, -g, cg_iters = self.pms.cg_iters)
+                sAs = step_gradient.dot( fisher_vector_product(step_gradient) )
+                inv_stepsize = np.sqrt( sAs/(2.*self.pms.max_kl) )
+                fullstep_gradient = step_gradient / (inv_stepsize + 1e-8)
+
+                def loss_function(x):
+                        self.sess.run( self.set_var_from_flat, feed_dict = {self.weights_to_set: x})
+                        surr_loss, kl = self.sess.run([self.surr_loss, self.kl], feed_dict = feed_dict)
+                        # self.sess.run(set_from_flat(self.actor.var_list, flat_theta_prev))
+                        return surr_loss, kl
+                if self.pms.linesearch:
+                        flat_theta_new = linesearch(loss_function, flat_theta_prev, fullstep_gradient, self.pms.max_backtracks, self.pms.max_kl)
+                else:
+                        flat_theta_new = flat_theta_prev + fullstep_gradient
+                self.sess.run(self.set_var_from_flat, feed_dict = {self.weights_to_set: flat_theta_prev})
+                update_gradient = flat_theta_new - flat_theta_prev
+                # step_gradients.append(flat_theta_new - flat_theta_prev)
+                # flat_theta_new = flat_theta_prev + np.nanmean(step_gradients, axis = 0)
+                surrgate_loss, kl_divergence = loss_function(flat_theta_new)
+                stats = dict(
+                        surrgate_loss = surrgate_loss,
+                        kl_divergence = kl_divergence,
+                        average_return = np.mean(episode_rewards),
+                        total_time_step = n_samples
+                        )
+                return flat_theta_new, flat_theta_prev, stats
 	# def train_paths(self, paths):
 	# 	# paths = sum(all_paths, [])
 	# 	sample_data = self.process_paths(paths)
@@ -633,13 +703,54 @@ class Context_TRPO_Agent(Agent):
 
 
 	def learn(self):
+                '''
+                saving_result = dict(
+                        average_return = [],
+                        sample_time = [],
+                        total_time_step = [],
+                        train_time = [],
+                        surrgate_loss = [],
+                        kl_divergence = [],
+                        iteration_number = []
+                        )
+                '''
+                dict_keys = ['average_return', 'sample_time', 'total_time_step', \
+                        'train_time', 'surrgate_loss', 'kl_divergence', 'iteration_number']
+                saving_result = dict([(v, []) for v in dict_keys])
+
+                for iter_num in range(self.pms.max_iter):
+                        print('\n******************* Iteration %i *******************'%iter_num)
+                        t = time.time()
+                        paths = self.get_paths()
+                        sample_time = time.time() - t
+                        t = time.time()
+                        theta, theta_old, stats = self.train_paths(paths)
+                        self.sess.run(self.set_var_from_flat, feed_dict = {self.weights_to_set: theta})
+                        train_time = time.time() - t
+
+                        for k, v in stats.items():
+                                print("%-20s: %15.5f"%(k,v))
+
+                        save_value_list = [stats['average_return'], sample_time, stats['total_time_step'], \
+                                train_time, stats['surrgate_loss'], stats['kl_divergence'], iter_num]
+
+                        [saving_result[k].append(v) for (k,v) in zip(dict_keys, save_value_list)]
+
+                        if self.pms.save_model and iter_num % self.pms.save_model_iters == 0:
+                                self.save_model(self.pms.save_dir + self.pms.env_name + '-iter%i'%(iter_num))
+
+                return saving_result	
+
+
+	'''
+	def learn(self):
 		dict_keys = ['average_return', 'sample_time', 'total_time_step', \
 			'train_time', 'surrgate_loss', 'kl_divergence', 'iteration_number', 's_vector', 'l1_norm', 'l0_norm']
 		saving_result = dict([(v, []) for v in dict_keys])
 
-		'''
+		
 			Warm Up Stage
-		'''
+		
 		context_size = self.pms.context_shape - 1
 		if self.context_range is not None:
 			task_context = np.random.rand(context_size) * (self.context_range) - self.context_range/2 # + self.default_context
@@ -673,9 +784,9 @@ class Context_TRPO_Agent(Agent):
 				self.save_model(self.pms.save_dir + self.pms.env_name + '-iter%i'%(iter_num))
 
 
-		'''
+		
 			Joint Learn Stage
-		'''
+		
 		shared_var_list = [v for v in self.shared_var_list if not '_m0' in v.name]
 		# shared_var_list = self.shared_var_list
 		task_var_list = self.task_var_list
@@ -729,3 +840,4 @@ class Context_TRPO_Agent(Agent):
 		# 		self.save_model(self.pms.save_dir + self.pms.env_name + '-iter%i'%(iter_num))
 
 		return saving_result
+	'''

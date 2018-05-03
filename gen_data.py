@@ -13,7 +13,7 @@ from gym.envs.mujoco.walker2d import Walker2dEnv
 
 env = Walker2dEnv()
 env.reward_type = 'bound'
-env.target_value = 0.
+env.target_value = 1.
 default_context = np.array([0., 0., -9.8])
 # env.model.opt.gravity[0] += default_context[0] + 0.
 # env.model.opt.gravity[2] += default_context[2] - 5.
@@ -53,10 +53,11 @@ saver = tf.train.Saver()
 learn_agent.saver = saver
 sess.run(tf.global_variables_initializer())
 
-model_file_prefix = 'Data/dm_control/stl/walker_stand/'
-model_file_suffix = '/exp0/walker_stand-iter490.ckpt'
-w_list = [-3., -1.5, 0., 1.5, 3.]
-task_name_list = ['w%1.1fg0.0'%w for w in w_list]
+model_file_prefix = 'Data/dm_control/finetune/'
+model_file_suffix = '/exp2/walker-iter990.ckpt'
+# w_list = [-3., -1.5, 0., 1.5, 3.]
+w_list = [-4, -2, -1, 0, 1, 2, 4]
+task_name_list = ['walker_s1.0/w%1.1fg0.0'%w for w in w_list]
 for w, task_name in zip(w_list, task_name_list):
 	env.model.opt.gravity[0] = w
 	model_file_name = model_file_prefix + task_name + model_file_suffix
@@ -64,7 +65,7 @@ for w, task_name in zip(w_list, task_name_list):
 	stats = []
 	for i in range(1000):
 		stats.append(learn_agent.get_single_path())
-		sys.stdout.wr`````````````````````````````ite('%i-th path sampled. \r'%i)
+		sys.stdout.write('%i-th path sampled. \r'%i)
 		sys.stdout.flush()
 	#stats = [learn_agent.get_single_path() for _ in range(1000)]
 	obs = np.array( [s['observations'] for s in stats] )
@@ -72,5 +73,5 @@ for w, task_name in zip(w_list, task_name_list):
 	res = np.array( [s['rewards'] for s in stats] )
 	print( (np.mean([np.sum(a) for a in res]) , np.std([np.sum(a) for a in res]) ))
 
-	data_filename = 'Data/mimic_data/stand_%s.npz'%task_name
+	data_filename = 'Data/mimic_data/finetune/%s_exp2.npz'%task_name
 	np.savez(data_filename, obs = obs, acs = acs, res = res)
