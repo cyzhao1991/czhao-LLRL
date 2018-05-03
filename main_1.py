@@ -21,6 +21,7 @@ num_of_paths = args.num_of_paths
 num_of_exps = args.num_of_exps
 '''
 gpu_num = 0
+speed = -4
 # task_num = 2
 # tmp_num = int(sys.argv[1])
 # task_num = int(sys.argv[2])
@@ -45,11 +46,10 @@ gpu_num = 0
 # 	tf.reset_default_graph()
 # 	main(gpu_num, i, env_list[task_num], task_num = task_num, num_of_paths = 10)
 
-gravity_list = [-5., -2.5, 0., 2.5, 5.]
-wind_list = [-3., -1.5, 0., 1.5, 3.]
-target_speed = [-4., -1., 0., 1., 4.]
+# gravity_list = [-5., -2.5, 0., 2.5, 5.]
+# wind_list = [-3., -1.5, 0., 1.5, 3.]
+# target_speed = [-4., -1., 0., 1., 4.]
 # for g in gravity_list:
-for i in range(1):
+for i in range(5):
 	tf.reset_default_graph()
-	i = 4
-	main(gpu_num, i, gravity = gravity_list[2], wind = wind_list[2], speed = target_speed[3])
+	main(gpu_num, i, speed = speed)#, gravity = gravity_list[2], wind = wind_list[2], speed = target_speed[3])
