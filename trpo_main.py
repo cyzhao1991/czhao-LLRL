@@ -31,7 +31,7 @@ def main(gpu_num, exp_num, speed = None, **kwargs):
 	GRAVITY = 0.
 	WIND = 0.
 	exp_num = exp_num 
-	speed = SPEED if speed is none else speed
+	speed = SPEED if speed is None else speed
 	gravity = GRAVITY
 	wind = WIND
 
@@ -75,14 +75,14 @@ def main(gpu_num, exp_num, speed = None, **kwargs):
 		pms.obs_shape = obs_size
 		pms.action_shape = act_size
 		pms.max_action = max_action
-		pms.num_of_paths = num_of_paths
+		#pms.num_of_paths = num_of_paths
 		pms.max_iter = 1000
 		pms.max_time_step = 1000
-		pms.subsample_factor = 1.
+		pms.subsample_factor = .1
 		pms.max_kl = 0.01
 		pms.min_std = 0.01
 		pms.env_name = 'walker'
-		pms.max_total_time_step = 4096
+		pms.max_total_time_step = 16384
 		config = tf.ConfigProto(allow_soft_placement = True)
 		config.gpu_options.per_process_gpu_memory_fraction = 0.1
 		config.gpu_options.allow_growth = True

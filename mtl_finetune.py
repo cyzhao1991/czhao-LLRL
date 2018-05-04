@@ -39,11 +39,11 @@ with tf.device('/gpu:%i'%(0)):
 	pms.obs_shape = obs_size
 	pms.action_shape = act_size
 	pms.max_action = max_action
-	pms.max_total_time_step = 4096
+	pms.max_total_time_step = 16384
 	pms.max_kl = 0.01
 	pms.min_std = 0.01
 	pms.max_iter = 1000	
-	pms.subsample_factor = 1.
+	pms.subsample_factor = .1
 	pms.max_time_step = 1000
 	pms.env_name = 'walker'
 	pms.train_flag = True
@@ -77,14 +77,14 @@ inactive_module_index = np.nonzero(inactive_module)
 inactive_module_name = ['h%i_m%i'%(i,j) for i,j in zip(inactive_module_index[0], inactive_module_index[1])]
 
 #actor.shared_var_list = [v for v in ]
-'''
+
 with tf.device('/gpu:%i'%(0)):
 	actor = Context_Gaussian_Actor(actor_net, sess, pms)
 	baseline_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [False], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
 	baseline = BaselineFcnn(baseline_net, sess, pms)
 	actor.shared_var_list = [v for v in learned_var_list if np.any([name in v.name for name in inactive_module_name])]
 	actor.shared_var_list.append(actor.action_logstd)
-	actor.var_list = actor.shared_var_list # + actor.task_var_list
+	actor.var_list = actor.shared_var_list + actor.task_var_list
 	learn_agent = Context_TRPO_Agent(env,actor, baseline,sess, pms, [None], env_contexts =np.array([[0,0,0,0,1,0,0]]))
 
 all_var_list = tf.global_variables()
@@ -105,4 +105,3 @@ myshelf['saving_result'] = saving_result
 myshelf.close()
 
 #actor.shared_var_list = [v for v in learned_var_list if np.any([name in v.name for name in inactive_module_name])]
-'''
