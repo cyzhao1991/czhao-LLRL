@@ -16,12 +16,12 @@ from actor.context_actor import Context_Gaussian_Actor
 from model.context_net import Context_Fcnn_Net, Concat_Context_Fcnn_Net
 from agent.context_trpo import Context_TRPO_Agent
 
-def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = None):
+def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = 0.):
+
 	tf.reset_default_graph()
-	exp_num = 5
-	WIND = 3.
-	dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp5/'%WIND
-	# dir_name = '/disk/scratch/mtl_prog/walker_s%1.1f/w%1.1fg0.0/exp%i'%(SPEED, WIND, exp_num)
+
+	# dir_name = 'Data/dm_control/mtl_prog/mtl_walker_s1.0/w%1.1fg0.0/exp0/'%WIND
+	dir_name = '/disk/scratch/chenyang/Data/dm_control/mtl_prog/walker_s%1.1f/w%1.1fg0.0/exp%i'%(SPEED, WIND, exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
 	env = Walker2dEnv()
@@ -36,7 +36,7 @@ def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = None):
 	max_action = env.action_space.high
 	obs_size = env.observation_space.shape[0]
 
-	with tf.device('/gpu:%i'%(0)):
+	with tf.device('/gpu:%i'%(gpu_num)):
 		pms = Paras_base().pms
 		pms.save_model = True
 		pms.save_dir = dir_name
@@ -79,24 +79,26 @@ def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = None):
 
 	m,n,l = zero_out_s.shape
 
-	inactive_module = [np.all(s, axis = 0) for s in learned_s_nonzero]
-	inactive_module_index = np.nonzero(inactive_module)
-	inactive_module_name = ['h%i_m%i'%(i,j) for i,j in zip(inactive_module_index[0], inactive_module_index[1])]
+	# inactive_module = [np.all(s, axis = 0) for s in learned_s_nonzero]
+	# inactive_module_index = np.nonzero(inactive_module)
+	# inactive_module_name = ['h%i_m%i'%(i,j) for i,j in zip(inactive_module_index[0], inactive_module_index[1])]
+	# inactive_module_list = [v for v in learned_var_list if np.any([name in v.name for name in inactive_module_name])]
+
+	inactive_module = [s[3] for s in learned_s_nonzero]
+	inactive_module_index = [np.nonzero(s) for s in inactive_module]
+	inactive_module_name = ['h%i_m%i'%(i,inactive_module_index[i][0][0]) for i in range(4)]
 	inactive_module_list = [v for v in learned_var_list if np.any([name in v.name for name in inactive_module_name])]
 
-	zero_one_s = np.array(zero_out_s)
-	# for i,j in zip(inactive_module_index[0], inactive_module_index[1]):
-	# 	zero_one_s[i][:,j] = 1.
-
-	# for i, j in zip(inactive_module_index[0], inactive_module_index[1]):
-	# 	zero_out_s[i, :, j] = 1.
-	sess.run([tf.assign(s, zo_s) for s, zo_s in zip(s_var_list, zero_out_s)])
-	# sess.run([tf.assign(s, zo_s) for s, zo_s in zip(s_var_list, zero_one_s)])
 	s_train_mask = [np.full(s.shape, False, dtype = bool) for s in learned_s]
-	for s in s_train_mask:
-		s[3] = True
+	for s, new_s in zip(s_train_mask, inactive_module):
+		s[3] = np.logical_not(new_s)
 
-	s_var_list = [tf.where(mask, s, tf.stop_gradient(s)) for s, mask in zip(s_var_list, s_train_mask)]
+	for i in range(4):
+		zero_out_s[i][3][inactive_module_index[i][0][0]] = 1.
+
+	sess.run([tf.assign(s, zo_s) for s, zo_s in zip(s_var_list, zero_out_s)])
+
+	s_var_list = [tf.where(s_nz, s, tf.stop_gradient(s)) for s, s_nz in zip(s_var_list, s_train_mask)]
 	actor_net.c_weights = s_var_list
 	actor_net.def_Task_knowledge(actor_net.name)
 	actor_net.output = actor_net.build(actor_net.name)
@@ -107,9 +109,9 @@ def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = None):
 	# value_to_assign = sess.run(tf.trainable_variables())
 
 	# tf.reset_default_graph()
-
+	pdb.set_trace()
 	# sess = tf.Session(config = config)
-	with tf.device('/gpu:%i'%(0)):
+	with tf.device('/gpu:%i'%(gpu_num)):
 		# actor_net = Context_Fcnn_Net(sess, pms.obs_shape, pms.action_shape, pms.context_shape, [100,50,25], [mod_num,mod_num,mod_num,mod_num],\
 		# 		name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'tanh','None'], init = [.1, .1, .1, .01])
 		# var_to_assign = tf.trainable_variables()
@@ -144,6 +146,7 @@ def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = None):
 	myshelf = shelve.open(filename, 'n')
 	myshelf['saving_result'] = saving_result
 	myshelf.close()
+
 
 if __name__ == '__main__':
 	main()
