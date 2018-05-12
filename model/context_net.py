@@ -44,8 +44,12 @@ class Context_Fcnn_Net(Net):
 		# else:
 		# 	raise ValueError('module_num too small')
 		with tf.name_scope(name):
-			self.c_weights = [tf.Variable(tf.truncated_normal([self.context_dim, dim], mean = 0., stddev = 1.), \
-				name = 's_vector_h%i'%k) for dim,k in zip(self.module_num, range(self.num_of_layer))]
+			try:
+				self.c_weights
+			except AttributeError:
+				self.c_weights = [tf.Variable(tf.truncated_normal([self.context_dim, dim], mean = 0., stddev = 1.), \
+					name = 's_vector_h%i'%k) for dim,k in zip(self.module_num, range(self.num_of_layer))]
+				print('create c weights')
 			# self.c_weights = [tf.Variable( (diagnal_init + .1 * np.random.rand(self.context_dim, dim)).astype(np.float32), \
 			# 	name = 's_vector_h%i'%k) for dim,k in zip(self.module_num, range(self.num_of_layer))]
 			# self.s_vector = [ tf.expand_dims(tf.matmul(self.context, tf.nn.relu(w_c)), 1) for w_c in self.c_weights]
@@ -56,10 +60,14 @@ class Context_Fcnn_Net(Net):
 		net = [self.input]
 		with tf.name_scope(name):
 			for i in range(self.num_of_layer):
+				# tmp = tf.stack( [tf.matmul(net[i], weight) + bias for weight, bias in zip(self.KB_weights[i], self.KB_bias[i])] , axis = -1)
+				# print(tmp)
+				# print(self.s_vector[i])
 				hidden_unit = tf.reduce_sum( tf.stack( [tf.matmul(net[i], weight) + bias for weight, bias in zip(self.KB_weights[i], self.KB_bias[i])] , \
 					axis = -1) * self.s_vector[i], axis = -1)
 				net.append(self.activation_fns_call[i](hidden_unit))
 		return net[-1]
+
 
 class Context_Fcnn_Net_2(Net):
 

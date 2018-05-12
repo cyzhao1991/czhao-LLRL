@@ -161,10 +161,10 @@ dir_name = 'Data/dm_control/stl/walker_walk/w0.0g-5.0/exp0/'
 # max_action = act_spec.maximum
 # obs_size = np.sum(np.sum([s.shape for s in obs_spec.values()])) + 1
 
-SPEED = 1.
+SPEED = 4.
 GRAVITY = 0.
 WIND = 0.
-exp_num = 0
+exp_num = 1
 speed = SPEED
 gravity = GRAVITY
 wind = WIND
@@ -225,12 +225,21 @@ sess.run(tf.global_variables_initializer())
 # learn_agent.get_single_path()
 # model_file = '../Data/arv/trpo_stl_Jan28/task_1_exp3/cartpole-iter190.ckpt'
 # model_file = 'Data/checkpoint/stl/exp0_nogoal/cartpole-iter990.ckpt'
-learn_agent.pms.render = False
+learn_agent.pms.render = True
 learn_agent.pms.train_flag = False
 
 wind_list = [-4, -2, -1, 0, 1, 2, 4]
 overall_mean = np.zeros([7,7])
 overall_std = np.zeros([7,7])
+# speed = -1.
+# wind = 0.
+# gravity = 0.
+# model_file = 'Data/dm_control/finetune/walker_s%1.1f/w%1.1fg%1.1f/exp3/walker-iter990.ckpt'%(speed, wind, gravity)
+model_file = 'Data/dm_control/stl/walker_s%1.1f/w%1.1fg%1.1f/exp%i/walker-iter990.ckpt'%(speed, wind, gravity, exp_num)
+
+learn_agent.saver.restore(sess, model_file)
+
+'''
 for i, wind in enumerate(wind_list):
 	model_file = 'Data/dm_control/finetune/walker_s%1.1f/w%1.1fg%1.1f/exp2/walker-iter990.ckpt'%(speed, wind, gravity)
 	# model_file = 'Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp0/walker-iter990.ckpt'
@@ -242,6 +251,7 @@ for i, wind in enumerate(wind_list):
 		overall_mean[i][j] = np.mean([np.sum(s['rewards']) for s in stats])
 		overall_std[i][j]  = np.std( [np.sum(s['rewards']) for s in stats])
 		print(i,j)
+'''
 # print([np.sum(s['rewards']) for s in stats])
 # # # env.render(close = True)
 # print(np.mean( [np.sum(s['rewards']) for s in stats] ) )

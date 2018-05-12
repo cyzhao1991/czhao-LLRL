@@ -24,9 +24,9 @@ class Context_TRPO_Agent(Agent):
 		self.var_list = self.actor.var_list
 		self.shared_var_list = self.actor.shared_var_list
 		self.task_var_list = self.actor.task_var_list
+		self.boost_baseline = True
 
-
-		self.shared_var_num = np.sum( self.sess.run([tf.size(v) for v in self.shared_var_list]) )
+		# self.shared_var_num = np.sum( self.sess.run([tf.size(v) for v in self.shared_var_list]) )
 		self.default_context = np.array(self.env.model.opt.gravity)
 		# self.default_context = np.array(self.env.physics.model.opt.gravity)
 
@@ -57,24 +57,26 @@ class Context_TRPO_Agent(Agent):
 
 			self.old_l1_norm = tf.placeholder(tf.float32, [None], name = 'old_l1_norm')
 
-			relu_task_var = [tf.nn.relu(v) for v in self.task_var_list]
-			if self.pms.contextual_method is 'meta_s_network':
-				self.l1_norm = tf.add_n([tf.reduce_sum(v) for v in relu_task_var])
-				self.l0_norm = tf.add_n([tf.count_nonzero(v) for v in relu_task_var])
-			elif self.pms.contextual_method is 'concatenate':
-				self.l1_norm = self.l0_norm = tf.constant([0], tf.float32)
-			# self.l1_norm = tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.task_var_list] )
-			# self.l0_norm = tf.add_n( [tf.count_nonzero( tf.abs(v) > 0.001) for v in self.task_var_list] )
+			# relu_task_var = [tf.nn.relu(v) for v in self.task_var_list]
+			# if self.pms.contextual_method is 'meta_s_network':
+			# 	self.l1_norm = tf.add_n([tf.reduce_sum(v) for v in relu_task_var])
+			# 	self.l0_norm = tf.add_n([tf.count_nonzero(v) for v in relu_task_var])
+			# elif self.pms.contextual_method is 'concatenate':
+			# 	self.l1_norm = self.l0_norm = tf.constant([0], tf.float32)
+			self.l1_norm = self.pms.l1_regularizer * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.task_var_list] )
+			self.l0_norm = tf.add_n( [tf.count_nonzero( tf.abs(v) > 0.001) for v in self.task_var_list] )
+			self.column_loss = 0.01 * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.task_var_list] ) 
+
 			# sig_task_var = [tf.sigmoid(v) for v in self.task_var_list]
 			# self.l1_norm = tf.add_n([tf.reduce_sum(v) for v in sig_task_var])
 			# self.l0_norm = tf.add_n([tf.count_nonzero(v) for v in sig_task_var])
 
 			if self.pms.contextual_method is 'meta_s_network':
-				self.total_loss = self.surr_loss + self.pms.l1_regularizer * tf.maximum(5.,self.l1_norm) #/ self.old_l1_norm
+				self.total_loss = self.surr_loss + self.l1_norm + self.column_loss#/ self.old_l1_norm
 			elif self.pms.contextual_method is 'concatenate':
 				self.total_loss = self.surr_loss
 
-			self.total_loss = self.surr_loss
+			# self.total_loss = self.surr_loss 
 			surr_grad = tf.gradients(self.total_loss, self.var_list)
 			self.flat_surr_grad = flatten_var( tf.gradients(self.total_loss, self.var_list) )
 			# self.flat_shared_grad = flatten_var( tf.gradients(self.total_loss, self.shared_var_list) )
@@ -327,7 +329,12 @@ class Context_TRPO_Agent(Agent):
 		)
 
 		#self.baseline.fit(observations, contexts, returns)
-		self.baseline.fit(observations, returns)
+		if self.boost_baseline:
+			self.baseline.fit(observations, returns, iter_num = 1000)
+			self.boost_baseline = False
+		else:
+			self.baseline.fit(observations, returns, iter_num = 5)
+
 		return sample_data
 
 	def warm_up(self, paths, var_list = None):
@@ -731,11 +738,21 @@ class Context_TRPO_Agent(Agent):
                         for k, v in stats.items():
                                 print("%-20s: %15.5f"%(k,v))
 
+                        logstds = self.sess.run(self.actor.action_logstd)
+                        print(logstds)
+                        # test_variable = tf.get_variable('test_variable')
+                        # test_variable = [v for v in tf.trainable_variables() if 'test_variable' in v.name][0]
+
+                        # self.sess.run( tf.assign(test_variable, test_variable + 1.) )
+                        # print(self.sess.run(test_variable))
+
+
                         save_value_list = [stats['average_return'], sample_time, stats['total_time_step'], \
                                 train_time, stats['surrgate_loss'], stats['kl_divergence'], iter_num]
 
                         [saving_result[k].append(v) for (k,v) in zip(dict_keys, save_value_list)]
-
+                        # s_vector = self.sess.run(self.task_var_list)
+                        # print([s[3] for s in s_vector])
                         if self.pms.save_model and iter_num % self.pms.save_model_iters == 0:
                                 self.save_model(self.pms.save_dir + self.pms.env_name + '-iter%i'%(iter_num))
 

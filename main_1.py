@@ -5,7 +5,7 @@ import tensorflow as tf
 # from env.cartpole import CartPoleEnv
 from gym.envs.mujoco.reacher import ReacherEnv
 
-import sys, time, argparse
+import sys, time, ArgumentParser
 
 '''
 parser = argparse.ArgumentParser()

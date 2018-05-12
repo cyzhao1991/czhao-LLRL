@@ -22,6 +22,7 @@ class Agent(object):
 		if not filename.endswith('.ckpt'):
 			filename += '.ckpt'
 		# filename = self.pms.save_dir + filename
+		self.saver.build()
 		self.saver.save(self.sess, filename)
 
 	def load_model(self, filename = None):

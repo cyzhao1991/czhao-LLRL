@@ -166,8 +166,8 @@ num_of_paths = 10
 
 SPEED = 1.
 GRAVITY = 0.
-WIND = 4.
-exp_num = 3
+WIND = 0.
+exp_num = 5
 speed = SPEED
 gravity = GRAVITY
 wind = WIND
@@ -201,14 +201,14 @@ with tf.device('/gpu:%i'%(0)):
 	pms.action_shape = act_size
 	pms.max_action = max_action
 	pms.num_of_paths = num_of_paths
-	pms.subsample_factor = 1.
+	pms.subsample_factor = .1
 	pms.max_time_step = 1000
 	pms.max_iter = 1000
 	pms.max_kl = 0.01
 	pms.min_std = 0.01
 	pms.env_name = 'walker'
 	pms.train_flag = True
-	pms.max_total_time_step = 4096
+	pms.max_total_time_step = 50000
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
 	config.gpu_options.allow_growth = True
@@ -224,7 +224,7 @@ with tf.device('/gpu:%i'%(0)):
 
 	learn_agent = TRPOagent(env, actor, baseline, sess, pms, [None], goal = None)
 
-saver = tf.train.Saver()
+saver = tf.train.Saver(max_to_keep = 100)
 learn_agent.saver = saver
 sess.run(tf.global_variables_initializer())
 # learn_agent.get_single_path()
@@ -234,8 +234,11 @@ sess.run(tf.global_variables_initializer())
 model_file = 'Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp0/walker-iter990.ckpt'
 learn_agent.saver.restore(sess, model_file)
 sess.run(tf.assign(actor.action_logstd, np.zeros([1,6]).astype(np.float32)))
+baseline_var = [v for v in tf.global_variables() if 'baseline' in v.name]
+sess.run([b.initializer for b in baseline_var])
 learn_agent.pms.render = False
 learn_agent.pms.train_flag = True
+
 saving_result = learn_agent.learn()
 
 sess.close()
@@ -244,8 +247,10 @@ filename = dir_name + 'shelve_result'
 myshelf = shelve.open(filename, 'n')
 myshelf['saving_result'] = saving_result
 myshelf.close()
+'''
 # # # learn_agent..get_single_path
 # # # stats = [learn_agent.get_single_path() for _ in range(1)]
 # stats = [learn_agent.get_single_path() for _ in range(1)]
 # # # env.render(close = True)
 # print(np.mean( [np.sum(s['rewards']) for s in stats] ) )
+'''

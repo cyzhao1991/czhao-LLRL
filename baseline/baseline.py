@@ -51,9 +51,8 @@ class BaselineFcnn(Baseline):
 			self.train = self.optimizer.apply_gradients( [(g,v) for g,v in zip(self.gradients_ph, self.var_list)] )
 			# self.train = self.optimizer.minimize(self.loss)
 
-	def fit(self, obs, rns):
+	def fit(self, obs, rns, iter_num = 5):
 		# feed_dict = {self.input: obs, self.value: rns}
-		iter_num = 5
 		data_size, _ = obs.shape
 		assert obs.shape[0] == rns.shape[0]
 		batch_size = 64

@@ -16,8 +16,10 @@ from actor.context_actor import Context_Gaussian_Actor
 from model.context_net import Context_Fcnn_Net, Concat_Context_Fcnn_Net
 from agent.context_trpo import Context_TRPO_Agent
 
-WIND = 3
-dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp0/'%WIND
+tf.reset_default_graph()
+
+WIND = 0.
+dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp5/'%WIND
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)
 env = Walker2dEnv()
@@ -56,43 +58,92 @@ with tf.device('/gpu:%i'%(0)):
 	# actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh','tanh', 'None'], init = [1., 1. ,1.,.01])
 	actor_net = Context_Fcnn_Net(sess, pms.obs_shape, pms.action_shape, pms.context_shape, [100,50,25], [mod_num,mod_num,mod_num,mod_num],\
 			name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'tanh','None'], init = [.1, .1, .1, .01])
-	mimic_agent = MtlMimicAgent(env, sess, pms, actor_net)
+	# mimic_agent = MtlMimicAgent(env, sess, pms, actor_net)
 
-	sess.run(tf.global_variables_initializer())
+	# sess.run(tf.global_variables_initializer())
 # mimic_agent.learn(all_obs, all_con, all_acs)
 saver = tf.train.Saver()
-model_name = 'Data/mimic_data/multi_wind_mimic_0.ckpt'
+# model_name = 'Data/mimic_data/multi_wind_mimic_0.ckpt'
 # saver.save(sess, model_name)
-saver.restore(sess, model_name)
+# saver.restore(sess, model_name)
 
-learned_var_list = [v for v in tf.trainable_variables()]
-learned_s = sess.run([v for v in learned_var_list if 's_vector' in v.name])
-learned_s_nonzero = [np.abs(s) < 0.01 for s in learned_s]
-inactive_module = [np.all(s, axis = 0) for s in learned_s_nonzero]
-inactive_module_index = np.nonzero(inactive_module)
-inactive_module_name = ['h%i_m%i'%(i,j) for i,j in zip(inactive_module_index[0], inactive_module_index[1])]
+# learned_var_list = [v for v in tf.trainable_variables()]
+# learned_s = sess.run([v for v in learned_var_list if 's_vector' in v.name])
+# learned_s_nonzero = [np.abs(s) < 0.01 for s in learned_s]
+# inactive_module = [np.all(s, axis = 0) for s in learned_s_nonzero]
+# inactive_module_index = np.nonzero(inactive_module)
+# inactive_module_name = ['h%i_m%i'%(i,j) for i,j in zip(inactive_module_index[0], inactive_module_index[1])]
 
 #actor.shared_var_list = [v for v in ]
 
 with tf.device('/gpu:%i'%(0)):
+
+	# test_variable = tf.Variable(np.array([0.]).astype(np.float32), tf.float32, name = 'test_variable')
+
 	actor = Context_Gaussian_Actor(actor_net, sess, pms)
 	baseline_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [False], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
 	baseline = BaselineFcnn(baseline_net, sess, pms)
-	actor.shared_var_list = [v for v in learned_var_list if np.any([name in v.name for name in inactive_module_name])]
-	actor.shared_var_list.append(actor.action_logstd)
-	actor.var_list = actor.shared_var_list + actor.task_var_list
-	learn_agent = Context_TRPO_Agent(env,actor, baseline,sess, pms, [None], env_contexts =np.array([[0,0,0,0,1,0,0]]))
+	# actor.shared_var_list = [v for v in learned_var_list if np.any([name in v.name for name in inactive_module_name])]
+	# actor.shared_var_list.append(actor.action_logstd)
+	# actor.var_list = actor.shared_var_list + actor.task_var_list
+	learn_agent = Context_TRPO_Agent(env,actor, baseline,sess, pms, [None], env_contexts =np.array([[0,0,0,1,0,0,0]]))
 
-all_var_list = tf.global_variables()
-all_var_initialized = sess.run([tf.is_variable_initialized(v) for v in all_var_list])
-not_initialized_vars = [v for v, f in zip(all_var_list, all_var_initialized) if not f]
-sess.run(tf.variables_initializer(not_initialized_vars))
-
+# all_var_list = tf.global_variables()
+# all_var_initialized = sess.run([tf.is_variable_initialized(v) for v in all_var_list])
+# not_initialized_vars = [v for v, f in zip(all_var_list, all_var_initialized) if not f]
+# sess.run(tf.variables_initializer(not_initialized_vars))
 learn_agent.saver = saver
 #sess.run([v.initializer for v in all_var_list[-5:]])
-model_name = dir_name + 'walker-iter990.ckpt'
+var_list  = [v for v in tf.trainable_variables()]
+s_vars = [v for v in var_list if 's_vector' in v.name]
+kb_vars = [v for v in var_list if 'KB' in v.name]
+l2_loss = [tf.nn.l2_loss(v) for v in kb_vars]
+logstd = learn_agent.actor.action_logstd
+# logstd = [v for v in var_list if 'logstd' in v.name]
+np.set_printoptions(precision = 3)
+sess.run(tf.global_variables_initializer())
+model_name = dir_name + 'walker-iter490.ckpt'
 learn_agent.saver.restore(sess, model_name)
+
+
+learned_s = sess.run(s_vars)
+learned_s_nonzero = [np.abs(s) < 0.01 for s in learned_s]
+zero_out_s = np.array([np.where(s_nz, 0, s) for s_nz, s in zip(learned_s_nonzero, learned_s)])
+sess.run([tf.assign(s, zo_s) for s, zo_s in zip(s_vars, zero_out_s)])
+
 '''
+
+for i in range(20):
+	model_name = dir_name + 'walker-iter%i.ckpt'%(i)
+	learn_agent.saver.restore(sess, model_name)
+	all_s = sess.run(s_vars)
+
+	new_s = np.array([s[3] for s in all_s])
+	new_l2 = np.array(sess.run( l2_loss ))
+
+	if i is not 0:
+		dif_s = np.max( np.abs(new_s - old_s) )
+		dif_l2 = np.max( new_l2 - old_l2 )
+
+	old_s = new_s
+	old_l2 = new_l2
+
+
+	print('------------%i-th iteration---------'%i)
+	print(new_s)
+	print(new_l2)
+	if i is not 0:
+		print(dif_s)
+		print(dif_l2)
+	# print(np.array([s[3] for s in all_s]))
+	# print(np.array(sess.run( l2_loss )))
+
+	
+
+	# print(sess.run(logstd))
+	# print(sess.run(test_variable))
+
+
 saving_result = learn_agent.learn()
 sess.close()
 
