@@ -75,8 +75,8 @@ class BaselineFcnn(Baseline):
 			update_grad = [np.mean( np.array([g[n] for g in batch_gradients]), axis = 0) for n in range(len(self.var_list))]
 			feed_dict = {g_ph: g for g_ph, g in zip(self.gradients_ph, update_grad)}
 			_ = self.sess.run(self.train, feed_dict = feed_dict)
-			# sys.stdout.write('%i-th iteration. Vf loss: %f \r'%(i, loss))
-			# sys.stdout.flush()
+			sys.stdout.write('%i-th iteration. Vf loss: %f \r'%(i, loss))
+			sys.stdout.flush()
 			# if delta_g < .05:
 			# 	break
 		loss = self.sess.run(self.loss, feed_dict = {self.input: obs, self.value: rns})

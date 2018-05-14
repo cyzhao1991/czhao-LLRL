@@ -12,6 +12,7 @@ class Paras_base(object):
 	flags.DEFINE_integer('max_backtracks',10, 'maximum number for backward linesearch')
 	flags.DEFINE_integer('save_model_iters',10, 'save model per # of iterations')
 	flags.DEFINE_integer('max_total_time_step', 0, 'max time step per iteration')
+	flags.DEFINE_integer('pre_iter', 0, 'pre iter for saving model')
 
 	flags.DEFINE_float('discount', 0.99, 'discount factor for env')
 	flags.DEFINE_float('max_std', 2.6, 'maximum std for action distribution')
@@ -22,7 +23,7 @@ class Paras_base(object):
 	flags.DEFINE_float('max_action', 10.0, 'maximum action')
 	flags.DEFINE_float('gae_lambda', 0.97, 'lambda factor for GAE')
 	flags.DEFINE_float('l1_regularizer', .001, 'alpha for l1 regularizer')
-
+	flags.DEFINE_float('l1_column_reg', 0.005, 'alpha for l1 column regularizer')
 
 	flags.DEFINE_boolean('render', False, 'whether to render')
 	flags.DEFINE_boolean('train_flag', True, 'whether in training process')

@@ -52,7 +52,8 @@ def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = 0.):
 		pms.env_name = 'walker'
 		pms.train_flag = True
 		pms.context_shape = 7
-		pms.l1_regularizer= 0.002
+		pms.l1_regularizer= 0.
+		pms.l1_column_reg = 0.
 		config = tf.ConfigProto(allow_soft_placement = True)
 		config.gpu_options.per_process_gpu_memory_fraction = 0.1
 		config.gpu_options.allow_growth = True
@@ -98,35 +99,32 @@ def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = 0.):
 
 	sess.run([tf.assign(s, zo_s) for s, zo_s in zip(s_var_list, zero_out_s)])
 
-	s_var_list = [tf.where(s_nz, s, tf.stop_gradient(s)) for s, s_nz in zip(s_var_list, s_train_mask)]
-	actor_net.c_weights = s_var_list
-	actor_net.def_Task_knowledge(actor_net.name)
-	actor_net.output = actor_net.build(actor_net.name)
+	s_var_mask = [np.full(s.shape, False, dtype = bool) for s in learned_s]
+	for ind, s in zip(inactive_module_index, s_var_mask):
+		s[3][ind[0][0]] = True
+
+	# s_var_list = [tf.where(s_nz, s, tf.stop_gradient(s)) for s, s_nz in zip(s_var_list, s_train_mask)]
+	# actor_net.c_weights = s_var_list
+	# actor_net.def_Task_knowledge(actor_net.name)
+	# actor_net.output = actor_net.build(actor_net.name)
 
 	# sess.run( [tf.assign(v, 0.001*np.random.rand(v.shape[0], v.shape[1]).astype(np.float32)) for v in inactive_module_list] )
 	pms.save_model_iters = 10
-
 	# value_to_assign = sess.run(tf.trainable_variables())
-
 	# tf.reset_default_graph()
-	pdb.set_trace()
+	# pdb.set_trace()
 	# sess = tf.Session(config = config)
 	with tf.device('/gpu:%i'%(gpu_num)):
-		# actor_net = Context_Fcnn_Net(sess, pms.obs_shape, pms.action_shape, pms.context_shape, [100,50,25], [mod_num,mod_num,mod_num,mod_num],\
-		# 		name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh', 'tanh','None'], init = [.1, .1, .1, .01])
-		# var_to_assign = tf.trainable_variables()
-		# inactive_module_list = [v for v in learned_var_list if np.any([name in v.name for name in inactive_module_name])]
-
-		test_variable = tf.Variable(np.array([1.]).astype(np.float32), tf.float32, name = 'test_variable')
 
 		actor = Context_Gaussian_Actor(actor_net, sess, pms)
 		baseline_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [False], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
 		baseline = BaselineFcnn(baseline_net, sess, pms)
 		actor.shared_var_list = inactive_module_list
-		# sess.run([var.initializer for var in actor.shared_var_list])
 		actor.shared_var_list.append(actor.action_logstd)
 		# actor.task_var_list = s_var_list
 		actor.var_list = actor.shared_var_list + actor.task_var_list
+		actor.shared_var_mask = [np.full(s.shape, True, dtype = bool) for s in actor.shared_var_list]
+		actor.task_var_mask = s_var_mask
 		learn_agent = Context_TRPO_Agent(env,actor, baseline,sess, pms, [None], env_contexts =np.array([[0,0,0,1,0,0,0]]))
 
 	# sess.run(tf.global_variables_initializer())
@@ -134,7 +132,7 @@ def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = 0.):
 	all_var_list = tf.global_variables()
 	all_var_initialized = sess.run([tf.is_variable_initialized(v) for v in all_var_list])
 	not_initialized_vars = [v for v, f in zip(all_var_list, all_var_initialized) if not f]
-	sess.run(tf.variables_initializer(not_initialized_vars))
+	sess.run(tf.variables_initializer(not_initialized_vars + actor.shared_var_list))
 	saver = tf.train.Saver(all_var_list, max_to_keep = 100)
 	learn_agent.saver = saver
 

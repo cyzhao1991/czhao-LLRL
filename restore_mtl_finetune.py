@@ -19,7 +19,7 @@ from agent.context_trpo import Context_TRPO_Agent
 tf.reset_default_graph()
 
 WIND = 0.
-dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp5/'%WIND
+dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp6/'%WIND
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)
 env = Walker2dEnv()
@@ -102,21 +102,26 @@ logstd = learn_agent.actor.action_logstd
 # logstd = [v for v in var_list if 'logstd' in v.name]
 np.set_printoptions(precision = 3)
 sess.run(tf.global_variables_initializer())
-model_name = dir_name + 'walker-iter490.ckpt'
-learn_agent.saver.restore(sess, model_name)
+# model_name = dir_name + 'walker-iter490.ckpt'
+# learn_agent.saver.restore(sess, model_name)
 
 
-learned_s = sess.run(s_vars)
-learned_s_nonzero = [np.abs(s) < 0.01 for s in learned_s]
-zero_out_s = np.array([np.where(s_nz, 0, s) for s_nz, s in zip(learned_s_nonzero, learned_s)])
-sess.run([tf.assign(s, zo_s) for s, zo_s in zip(s_vars, zero_out_s)])
+# learned_s = sess.run(s_vars)
+# learned_s_nonzero = [np.abs(s) < 0.01 for s in learned_s]
+# zero_out_s = np.array([np.where(s_nz, 0, s) for s_nz, s in zip(learned_s_nonzero, learned_s)])
+# sess.run([tf.assign(s, zo_s) for s, zo_s in zip(s_vars, zero_out_s)])
 
-'''
-
-for i in range(20):
-	model_name = dir_name + 'walker-iter%i.ckpt'%(i)
+l1 = []
+l0 = []
+WIND = 0.
+dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp6/'%WIND
+for i in range(17):
+	model_name = dir_name + 'walker-iter%i.ckpt'%(i * 10)
 	learn_agent.saver.restore(sess, model_name)
 	all_s = sess.run(s_vars)
+
+	l1.append(np.sum( [np.sum(np.abs(s[3])) for s in all_s] ) )
+	l0.append(np.sum( [np.sum( np.max(np.abs(s), axis = 0)) for s in all_s] ) )
 
 	new_s = np.array([s[3] for s in all_s])
 	new_l2 = np.array(sess.run( l2_loss ))
@@ -129,20 +134,23 @@ for i in range(20):
 	old_l2 = new_l2
 
 
-	print('------------%i-th iteration---------'%i)
-	print(new_s)
-	print(new_l2)
-	if i is not 0:
-		print(dif_s)
-		print(dif_l2)
+	# print('------------%i-th iteration---------'%i)
+	# print(new_s)
+	# print(new_l2)
+	# if i is not 0:
+	# 	print(dif_s)
+	# 	print(dif_l2)
 	# print(np.array([s[3] for s in all_s]))
 	# print(np.array(sess.run( l2_loss )))
-
-	
+plt.figure(1)
+plt.plot(l1)
+plt.plot(l0)
+plt.legend(['l1','l0'])
+plt.show()
 
 	# print(sess.run(logstd))
 	# print(sess.run(test_variable))
-
+'''
 
 saving_result = learn_agent.learn()
 sess.close()

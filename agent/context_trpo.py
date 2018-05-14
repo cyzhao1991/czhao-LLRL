@@ -25,6 +25,8 @@ class Context_TRPO_Agent(Agent):
 		self.shared_var_list = self.actor.shared_var_list
 		self.task_var_list = self.actor.task_var_list
 		self.boost_baseline = True
+		self.shared_var_mask = actor.shared_var_mask
+		self.task_var_mask = actor.task_var_mask
 
 		# self.shared_var_num = np.sum( self.sess.run([tf.size(v) for v in self.shared_var_list]) )
 		self.default_context = np.array(self.env.model.opt.gravity)
@@ -65,7 +67,7 @@ class Context_TRPO_Agent(Agent):
 			# 	self.l1_norm = self.l0_norm = tf.constant([0], tf.float32)
 			self.l1_norm = self.pms.l1_regularizer * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.task_var_list] )
 			self.l0_norm = tf.add_n( [tf.count_nonzero( tf.abs(v) > 0.001) for v in self.task_var_list] )
-			self.column_loss = 0.01 * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.task_var_list] ) 
+			self.column_loss = self.pms.l1_column_reg * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.task_var_list] ) 
 
 			# sig_task_var = [tf.sigmoid(v) for v in self.task_var_list]
 			# self.l1_norm = tf.add_n([tf.reduce_sum(v) for v in sig_task_var])
@@ -77,8 +79,18 @@ class Context_TRPO_Agent(Agent):
 				self.total_loss = self.surr_loss
 
 			# self.total_loss = self.surr_loss 
+			if self.shared_var_mask is not None and self.task_var_mask is not None:
+				self.flat_mask = flatten_var( self.shared_var_mask + self.task_var_mask )
+			else:
+				self.flat_mask = flatten_var( [np.full(s.shape, True, dtype = bool) for s in self.var_list] )
+
+			self.weights_to_set = tf.placeholder(tf.float32, [None], name = 'weights_to_set')
+			self.set_var_from_flat = set_from_flat(self.var_list, self.weights_to_set)
+			self.flatten_var = flatten_var(self.var_list)
+
 			surr_grad = tf.gradients(self.total_loss, self.var_list)
-			self.flat_surr_grad = flatten_var( tf.gradients(self.total_loss, self.var_list) )
+			flat_surr_grad = flatten_var( tf.gradients(self.total_loss, self.var_list) )
+			self.flat_surr_grad = tf.where( self.flat_mask, flat_surr_grad, np.zeros(self.flatten_var.shape))
 			# self.flat_shared_grad = flatten_var( tf.gradients(self.total_loss, self.shared_var_list) )
 			# self.flat_task_grad = flatten_var( tf.gradients(self.total_loss, self.task_var_list) )
 
@@ -87,17 +99,16 @@ class Context_TRPO_Agent(Agent):
 			kl_firstfixed = kl_sym_firstfixed(self.new_dist_mean, self.new_dist_logstd)
 			grads = tf.gradients(kl_firstfixed, self.var_list) 
 			flat_grads = flatten_var(grads) / batchsize
+			# flat_grads = tf.where(self.flat_mask, tmp_flat_grad, np.zeros(self.flatten_var.shape))
+
 			fvp = tf.gradients(tf.reduce_sum(flat_grads * self.flat_tangent), self.var_list)
-			self.flat_fvp = flatten_var(fvp)
+			flat_fvp = flatten_var(fvp)
+			self.flat_fvp = tf.where(self.flat_mask, flat_fvp, np.zeros(self.flatten_var.shape))
 
 			# shared_grads = tf.gradients(kl_firstfixed, self.shared_var_list)
 			# task_grads = tf.gradients(kl_firstfixed, self.task_var_list)
 			# # self.shared_flat_fvp = flatten_var( tf.gradients(tf.reduce_sum( flatten_var(shared_grads)/batchsize*self.flat_tangent) , self.shared_var_list) )
 			# # self.task_flat_fvp = flatten_var( tf.gradients(tf.reduce_sum( flatten_var(task_grads)/batchsize*self.flat_tangent) , self.task_var_list) )
-
-			self.weights_to_set = tf.placeholder(tf.float32, [None], name = 'weights_to_set')
-			self.set_var_from_flat = set_from_flat(self.var_list, self.weights_to_set)
-			self.flatten_var = flatten_var(self.var_list)
 
 			# self.set_shared_from_flat = set_from_flat(self.shared_var_list, self.weights_to_set)
 			# self.set_task_from_flat = set_from_flat(self.task_var_list, self.weights_to_set)
@@ -754,7 +765,7 @@ class Context_TRPO_Agent(Agent):
                         # s_vector = self.sess.run(self.task_var_list)
                         # print([s[3] for s in s_vector])
                         if self.pms.save_model and iter_num % self.pms.save_model_iters == 0:
-                                self.save_model(self.pms.save_dir + self.pms.env_name + '-iter%i'%(iter_num))
+                                self.save_model(self.pms.save_dir + self.pms.env_name + '-iter%i'%(iter_num + self.pms.pre_iter))
 
                 return saving_result	
 

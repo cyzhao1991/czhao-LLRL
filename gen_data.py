@@ -10,7 +10,7 @@ from agent.trpo import TRPOagent
 from baseline.baseline import *
 from model.net import *
 from gym.envs.mujoco.walker2d import Walker2dEnv
-
+tf.reset_default_graph()
 env = Walker2dEnv()
 env.reward_type = 'bound'
 env.target_value = 1.
@@ -53,13 +53,14 @@ saver = tf.train.Saver()
 learn_agent.saver = saver
 sess.run(tf.global_variables_initializer())
 
-model_file_prefix = 'Data/dm_control/finetune/'
-model_file_suffix = '/exp2/walker-iter990.ckpt'
+model_file_prefix = 'Data/dm_control/stl/'
+model_file_suffix = '/exp0/walker-iter990.ckpt'
 # w_list = [-3., -1.5, 0., 1.5, 3.]
 w_list = [-4, -2, -1, 0, 1, 2, 4]
-task_name_list = ['walker_s1.0/w%1.1fg0.0'%w for w in w_list]
+task_name_list = ['walker_s%1.1f/w0.0g0.0'%w for w in w_list]
 for w, task_name in zip(w_list, task_name_list):
-	env.model.opt.gravity[0] = w
+	# env.model.opt.gravity[0] = w
+	env.target_value = w
 	model_file_name = model_file_prefix + task_name + model_file_suffix
 	learn_agent.saver.restore(sess, model_file_name)
 	stats = []
@@ -73,5 +74,5 @@ for w, task_name in zip(w_list, task_name_list):
 	res = np.array( [s['rewards'] for s in stats] )
 	print( (np.mean([np.sum(a) for a in res]) , np.std([np.sum(a) for a in res]) ))
 
-	data_filename = 'Data/mimic_data/finetune/%s_exp2.npz'%task_name
+	data_filename = 'Data/mimic_data/stl/%s_exp0.npz'%task_name
 	np.savez(data_filename, obs = obs, acs = acs, res = res)

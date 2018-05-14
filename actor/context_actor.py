@@ -34,6 +34,7 @@ class Context_Gaussian_Actor(Actor):
 			self.action_std = tf.clip_by_value(self.action_std, min_std, max_std)
 
 		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.pms.name_scope)]
+		self.shared_var_mask = self.task_var_mask = None
 		# print(self.pms.contextual_method is 'meta_s_network')
 		if self.pms.contextual_method is 'meta_s_network':
 			self.shared_var_list = [v for v in self.var_list if 'KB' in v.name]
