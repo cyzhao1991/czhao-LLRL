@@ -2,7 +2,7 @@ from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import scipy.signal
-import sys, time, os, gym, shelve, argparse, pdb 
+import sys, time, os, gym, shelve, argparse, pdb, cv2
 
 from utils.paras import Paras_base
 from actor.actor import GaussianActor
@@ -14,12 +14,13 @@ from agent.mimic_agent import *
 
 from actor.context_actor import Context_Gaussian_Actor
 from model.context_net import Context_Fcnn_Net, Concat_Context_Fcnn_Net
-from agent.context_trpo import Context_TRPO_Agent
+# from agent.context_trpo import Context_TRPO_Agent
+from agent.context_trpo_ver1 import Context_TRPO_Agent
 
 tf.reset_default_graph()
 
-WIND = 0.
-dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp6/'%WIND
+WIND = 3.
+dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp0/'%WIND
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)
 env = Walker2dEnv()
@@ -106,21 +107,22 @@ sess.run(tf.global_variables_initializer())
 # learn_agent.saver.restore(sess, model_name)
 
 
-# learned_s = sess.run(s_vars)
-# learned_s_nonzero = [np.abs(s) < 0.01 for s in learned_s]
-# zero_out_s = np.array([np.where(s_nz, 0, s) for s_nz, s in zip(learned_s_nonzero, learned_s)])
+learned_s = sess.run(s_vars)
+learned_s_nonzero = [np.abs(s) < 0.01 for s in learned_s]
+zero_out_s = np.array([np.where(s_nz, 0, s) for s_nz, s in zip(learned_s_nonzero, learned_s)])
 # sess.run([tf.assign(s, zo_s) for s, zo_s in zip(s_vars, zero_out_s)])
 
 l1 = []
 l0 = []
-WIND = 0.
-dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp6/'%WIND
-for i in range(17):
-	model_name = dir_name + 'walker-iter%i.ckpt'%(i * 10)
+WIND = 3.
+# dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp0/'%WIND
+dir_name = 'Data/dm_control/finetune_ver1/mtl_walker_s1.0/w%1.1fg0.0/test_exp0/'%WIND
+for i in range(100):
+	model_name = dir_name + 'walker-iter%i.ckpt'%(i+1)
 	learn_agent.saver.restore(sess, model_name)
 	all_s = sess.run(s_vars)
 
-	l1.append(np.sum( [np.sum(np.abs(s[3])) for s in all_s] ) )
+	l1.append(np.sum( [np.sum(np.abs(s)) for s in all_s] ) )
 	l0.append(np.sum( [np.sum( np.max(np.abs(s), axis = 0)) for s in all_s] ) )
 
 	new_s = np.array([s[3] for s in all_s])
@@ -133,6 +135,11 @@ for i in range(17):
 	old_s = new_s
 	old_l2 = new_l2
 
+	cv2.imshow('heatmap', np.abs(new_s)/2. )
+	cv2.imshow('heatmap2', (np.abs(new_s)>.01).astype(np.float64))
+	cv2.waitKey(100)
+
+
 
 	# print('------------%i-th iteration---------'%i)
 	# print(new_s)
@@ -144,8 +151,9 @@ for i in range(17):
 	# print(np.array(sess.run( l2_loss )))
 plt.figure(1)
 plt.plot(l1)
+plt.figure(2)
 plt.plot(l0)
-plt.legend(['l1','l0'])
+# plt.legend(['l1','l0'])
 plt.show()
 
 	# print(sess.run(logstd))

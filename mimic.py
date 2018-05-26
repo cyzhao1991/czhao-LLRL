@@ -15,16 +15,18 @@ from agent.mimic_agent import *
 from actor.context_actor import Context_Gaussian_Actor
 from model.context_net import Context_Fcnn_Net, Concat_Context_Fcnn_Net
 
-w_list = [-3., 0., 3. ]
-w_list_2 = [-3., 0., 3.]
-task_name_list = ['w%1.1fg%1.1f'%(w, 0) for w in w_list]
-task_name_list2 = ['w%1.1fg0.0'%w for w in w_list_2]
-filename_list = ['Data/mimic_data/stand_%s.npz'%task_name for task_name in task_name_list]
-filename_list2 = ['Data/mimic_data/walk_%s.npz'%task_name for task_name in task_name_list2]
+# w_list = [-3., 0., 3. ]
+# w_list_2 = [-3., 0., 3.]
+# task_name_list = ['w%1.1fg%1.1f'%(w, 0) for w in w_list]
+# task_name_list2 = ['w%1.1fg0.0'%w for w in w_list_2]
+# filename_list = ['Data/mimic_data/stand_%s.npz'%task_name for task_name in task_name_list]
+# filename_list2 = ['Data/mimic_data/walk_%s.npz'%task_name for task_name in task_name_list2]
 
 w_list = [-4., -2., -1., 0., 1., 2., 4.]
-task_name_list = ['w%1.1fg0.0'%w for w in w_list]
-filename_list = ['Data/mimic_data/finetune/walker_s1.0/%s_exp2.npz'%task_name for task_name in task_name_list]
+# task_name_list = ['walker_s%1.1f/w0.0g0.0'%w for w in w_list]
+task_name_list = ['walker_s1.0/w%1.1fg0.0'%w for w in w_list]
+
+filename_list = ['Data/mimic_data/finetune/%s_exp2.npz'%task_name for task_name in task_name_list]
 
 all_obs = []
 all_acs = []
@@ -101,5 +103,5 @@ with tf.device('/gpu:%i'%(0)):
 	sess.run(tf.global_variables_initializer())
 mimic_agent.learn(all_obs, all_con, all_acs)
 saver = tf.train.Saver()
-model_name = 'Data/mimic_data/multi_wind_mimic_0.ckpt'
+model_name = 'Data/mimic_data/multi_wind_mimic_no_l1_0.ckpt'
 saver.save(sess, model_name)

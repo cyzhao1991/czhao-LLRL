@@ -13,12 +13,9 @@ w_list = [-4, -2, -1, 0, 1, 2, 4]
 mtl_w_list = [-3., -1.5, 0., 1.5, 3.]
 # filename_list = ['Data/dm_control/stl/walker_s%1.1f/w0.0g0.0/exp%i/shelve_result'%(i,j) for i in [s_list[6]] for j in range(3)]
 # filename_list = ['Data/dm_control/finetune/walker_s1.0/w%1.1fg0.0/exp3/shelve_result'%i for i in mtl_w_list]
-filename_list = ['Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp4/shelve_result'%i for i in mtl_w_list]
-# filename_list = ['Data/dm_control/stl/walker_stand/exp%i/shelve_result'%i for i in range(5)]
+# filename_list = ['Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp3/shelve_result'%i for i in mtl_w_list]
+filename_list = ['Data/dm_control/finetune_ver1/mtl_walker_s1.0/w3.0g0.0/test_exp%i/shelve_result'%i for i in range(4)]
 
-# filename_list = ['Data/checkpoint/stl/walker2d_exp%i_nogoal/shelve_result'%i for i in range(2)]
-# filename_list = ['Data/checkpoint/stl/exp%i/shelve_result'%i for i in range(5)]
-# filename_list = ['../Data/arv/walker2d_trpo_stl_Feb12/walker2d_exp%i_nogoal/shelve_result'%i for i in range(2)]
 shelf_list = [shelve.open(filename) for filename in filename_list]
 # pdb.set_trace()
 all_result = []
@@ -32,10 +29,10 @@ for filename, shelf in zip(filename_list, shelf_list):
 		print('bad      '+filename)
 
 key_list = all_result[0].keys()
-all_result = dict([ (key, np.array([np.array(result[key]) for result in all_result]) ) for key in key_list])
+all_result = dict([ (key, np.array([np.array(result[key][:]) for result in all_result]) ) for key in key_list])
 plt.figure(1)
-x_data = np.arange(500)
-x_err_data = np.arange(0,500,10)
+# x_data = np.arange(500)
+# x_err_data = np.arange(0,500,10)
 
 
 try:
@@ -54,19 +51,29 @@ for i, (key, data) in enumerate(all_result.items()):
 	std_data = np.std(data, axis = 0)#[x_data]
 	plt.plot( mean_data, linewidth = .3)
 	# plt.errorbar( x_err_data, mean_data[x_err_data], std_data[x_err_data] )
-	plt.xlim(-1,x_data[-1])
+	plt.xlim(-1,mean_data.shape[0])
 
 	plt.grid()
 
 # plt.subplot(2,4,8)
 plt.figure(2)
 plt.title('single task return')
-[plt.plot(y[:150], linewidth = .5) for y in all_result['average_return']]
+[plt.plot(y[:100], linewidth = .5) for y in all_result['average_return']]
+plt.grid()
+plt.legend('1234567')
+# plt.show()
+
+plt.figure(3)
+[plt.plot(y[:100], linewidth = .5) for y in all_result['l1_norm']]
+plt.grid()
+plt.legend('1234567')
+
+plt.figure(4)
+# plt.title('single task return')
+[plt.plot(y[:100], linewidth = .5) for y in all_result['column_norm']]
 plt.grid()
 plt.legend('1234567')
 plt.show()
-
-
 # exp_name = 'trpo_stl'
 
 # filelist = listdir('../Data/'+exp_name+'/')

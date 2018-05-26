@@ -43,9 +43,10 @@ def linesearch(f, x, fullstep, max_backtracks, max_kl):
 	for step_frac in .5**np.arange(max_backtracks):
 		new_x = x + step_frac*fullstep
 		newfval, newkl = f(new_x)
-		if newfval < fval and newkl < max_kl:
-			# print('valid gradient')
+		if newfval < fval and newkl < max_kl: # and newfval < 0:
+			print('valid gradient', step_frac)
 			return new_x
+	print('failed, fullstep')
 	return x
 
 def linesearch_new(f, x, fullstep, max_backtracks, max_kl):
