@@ -21,7 +21,7 @@ from agent.context_trpo_ver1 import Context_TRPO_Agent
 tf.reset_default_graph()
 exp_num = 5
 WIND = 3.
-dir_name = 'Data/dm_control/finetune_ver1/mtl_walker_s1.0/w%1.1fg0.0/test_exp9/'%WIND
+dir_name = 'Data/dm_control/finetune_ver1/mtl_walker_s1.0/w%1.1fg0.0/exp0/'%WIND
 
 # dir_name = '/disk/scratch/mtl_prog/walker_s%1.1f/w%1.1fg0.0/exp%i'%(SPEED, WIND, exp_num)
 if not os.path.isdir(dir_name):
@@ -48,14 +48,14 @@ with tf.device('/gpu:%i'%(0)):
 	pms.max_total_time_step = 50000
 	pms.max_kl = 0.01
 	pms.min_std = 0.01
-	pms.max_iter = 101
+	pms.max_iter = 501
 	pms.subsample_factor = .1
-	pms.max_time_step = 1000
+	pms.max_time_step = 500
 	pms.env_name = 'walker'
 	pms.train_flag = True
 	pms.context_shape = 7
-	pms.l1_regularizer= 1.
-	pms.l1_column_reg = 5.
+	pms.l1_regularizer= .1
+	pms.l1_column_reg = .5
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
 	config.gpu_options.allow_growth = True
@@ -107,7 +107,7 @@ for s in s_var_mask:
 # actor_net.output = actor_net.build(actor_net.name)
 
 # sess.run( [tf.assign(v, 0.001*np.random.rand(v.shape[0], v.shape[1]).astype(np.float32)) for v in inactive_module_list] )
-pms.save_model_iters = 1
+pms.save_model_iters = 5
 # tf.reset_default_graph()
 
 with tf.device('/gpu:%i'%(0)):
@@ -128,7 +128,7 @@ all_var_list = tf.global_variables()
 all_var_initialized = sess.run([tf.is_variable_initialized(v) for v in all_var_list])
 not_initialized_vars = [v for v, f in zip(all_var_list, all_var_initialized) if not f]
 sess.run(tf.variables_initializer(not_initialized_vars + actor.shared_var_list))
-saver = tf.train.Saver(all_var_list, max_to_keep = 100)
+saver = tf.train.Saver(all_var_list, max_to_keep = 101)
 learn_agent.saver = saver
 '''
 # dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp6/'%WIND
