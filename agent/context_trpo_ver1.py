@@ -58,9 +58,9 @@ class Context_TRPO_Agent(Agent):
 				REINFORCE Policy Gradient
 			'''
 
-			self.l1_norm = self.pms.l1_regularizer * tf.add_n( [tf.reduce_sum( tf.nn.leaky_relu(v, alpha = .01) ) for v in self.task_var_list] )
+			self.l1_norm = self.pms.l1_regularizer * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.task_var_list] )
 			self.l0_norm = tf.add_n( [tf.count_nonzero( v > 0.001) for v in self.task_var_list] )
-			self.column_loss = self.pms.l1_column_reg * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.nn.leaky_relu(v, alpha = .01), axis=0 )) for v in self.task_var_list] ) 
+			self.column_loss = self.pms.l1_column_reg * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.task_var_list] ) 
 
 			self.pg_loss = logli_new * self.advant
 			self.pg_grad = tf.gradients( -self.pg_loss , self.task_var_list) 
@@ -152,7 +152,7 @@ class Context_TRPO_Agent(Agent):
 		actor_infos = []
 		if self.pms.env_name.startswith('walker'):
 
-			self.env.target_value = target_speed
+			# self.env.target_value = target_speed
 			# self.env.model.opt.gravity[0] = wind
 			self.env.model.opt.gravity[2] = gravity
 			state = self.env.reset()
