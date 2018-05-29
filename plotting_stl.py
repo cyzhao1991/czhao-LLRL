@@ -13,8 +13,8 @@ w_list = [-4, -2, -1, 0, 1, 2, 4]
 mtl_w_list = [-3., -1.5, 0., 1.5, 3.]
 # filename_list = ['Data/dm_control/stl/walker_s%1.1f/w0.0g0.0/exp%i/shelve_result'%(i,j) for i in [s_list[6]] for j in range(3)]
 # filename_list = ['Data/dm_control/finetune/walker_s1.0/w%1.1fg0.0/exp3/shelve_result'%i for i in mtl_w_list]
-# filename_list = ['Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp3/shelve_result'%i for i in mtl_w_list]
-filename_list = ['Data/dm_control/finetune_ver1/mtl_walker_s1.0/w3.0g0.0/test_exp%i/shelve_result'%i for i in range(4)]
+filename_list = ['Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp3/shelve_result'%i for i in mtl_w_list]
+# filename_list = ['Data/dm_control/finetune_ver1/mtl_walker_s1.0/w3.0g0.0/test_exp%i/shelve_result'%i for i in range(4)]
 
 shelf_list = [shelve.open(filename) for filename in filename_list]
 # pdb.set_trace()
@@ -63,16 +63,16 @@ plt.grid()
 plt.legend('1234567')
 # plt.show()
 
-plt.figure(3)
-[plt.plot(y[:100], linewidth = .5) for y in all_result['l1_norm']]
-plt.grid()
-plt.legend('1234567')
+# plt.figure(3)
+# [plt.plot(y[:100], linewidth = .5) for y in all_result['l1_norm']]
+# plt.grid()
+# plt.legend('1234567')
 
-plt.figure(4)
-# plt.title('single task return')
-[plt.plot(y[:100], linewidth = .5) for y in all_result['column_norm']]
-plt.grid()
-plt.legend('1234567')
+# plt.figure(4)
+# # plt.title('single task return')
+# [plt.plot(y[:100], linewidth = .5) for y in all_result['column_norm']]
+# plt.grid()
+# plt.legend('1234567')
 plt.show()
 # exp_name = 'trpo_stl'
 

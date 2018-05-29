@@ -58,9 +58,9 @@ class Context_TRPO_Agent(Agent):
 				REINFORCE Policy Gradient
 			'''
 
-			self.l1_norm = self.pms.l1_regularizer * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.task_var_list] )
-			self.l0_norm = tf.add_n( [tf.count_nonzero( tf.abs(v) > 0.001) for v in self.task_var_list] )
-			self.column_loss = self.pms.l1_column_reg * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.task_var_list] ) 
+			self.l1_norm = self.pms.l1_regularizer * tf.add_n( [tf.reduce_sum( tf.nn.leaky_relu(v, alpha = .01) ) for v in self.task_var_list] )
+			self.l0_norm = tf.add_n( [tf.count_nonzero( v > 0.001) for v in self.task_var_list] )
+			self.column_loss = self.pms.l1_column_reg * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.nn.leaky_relu(v, alpha = .01), axis=0 )) for v in self.task_var_list] ) 
 
 			self.pg_loss = logli_new * self.advant
 			self.pg_grad = tf.gradients( -self.pg_loss , self.task_var_list) 
@@ -153,7 +153,7 @@ class Context_TRPO_Agent(Agent):
 		if self.pms.env_name.startswith('walker'):
 
 			self.env.target_value = target_speed
-			self.env.model.opt.gravity[0] = wind
+			# self.env.model.opt.gravity[0] = wind
 			self.env.model.opt.gravity[2] = gravity
 			state = self.env.reset()
 
@@ -161,7 +161,6 @@ class Context_TRPO_Agent(Agent):
 
 		if self.pms.render:
 			self.env.render()
-			
 
 		for _ in range(self.pms.max_time_step):
 			action, actor_info = self.actor.get_action(state, context)
@@ -299,8 +298,8 @@ class Context_TRPO_Agent(Agent):
 		'''
 
 		pg_gradients = []
-		tmp_g1 = []
-		tmp_g2 = []
+		# tmp_g1 = []
+		# tmp_g2 = []
 		for path in paths:
 			tmp_sample_data = self.process_paths([path], fit = False)
 			feed_dict = {self.obs: tmp_sample_data['observations'],
@@ -309,12 +308,12 @@ class Context_TRPO_Agent(Agent):
 						 self.context: tmp_sample_data['contexts']
 						 }
 			pg_gradients.append( self.sess.run( self.flat_pg_grad, feed_dict = feed_dict) )
-			tmp_g1.append(self.sess.run( flatten_var(self.pg_grad), feed_dict = feed_dict))
-			tmp_g2.append(self.sess.run( flatten_var(self.sparse_grad), feed_dict = feed_dict))
+			# tmp_g1.append(self.sess.run( flatten_var(self.pg_grad), feed_dict = feed_dict))
+			# tmp_g2.append(self.sess.run( flatten_var(self.sparse_grad), feed_dict = feed_dict))
 		task_pg_gradients = np.nanmean( pg_gradients, axis = 0)
 		# print( np.nanmean( tmp_g1, axis = 0) )
 		# print( np.nanmean( tmp_g2, axis = 0) )
-		print(self.sess.run(self.task_var_list))
+		# print(self.sess.run(self.task_var_list))
 
 		inds = np.random.choice(n_samples, int(np.floor(n_samples*self.pms.subsample_factor)), replace = False)
 		feed_dict = {self.obs: obs_source[inds],
@@ -390,8 +389,8 @@ class Context_TRPO_Agent(Agent):
 		self.sess.run(self.set_task_var_from_flat, feed_dict = {self.weights_to_set: flat_task_prev + task_pg_gradients})
 		self.sess.run(self.set_shared_var_from_flat, feed_dict = {self.weights_to_set: flat_theta_prev})
 		# self.sess.run( self.set_shared_var_from_flat, feed_dict = {self.weights_to_set: flat_theta_new - A_1C})
-		surrgate_loss, kl_divergence = self.sess.run( [self.surr_loss, self.kl], feed_dict = feed_dict	)
-		# surrgate_loss, kl_divergence = loss_function(flat_theta_new)
+		# surrgate_loss, kl_divergence = self.sess.run( [self.surr_loss, self.kl], feed_dict = feed_dict	)
+		surrgate_loss, kl_divergence = loss_function(flat_theta_new)
 
 		stats = dict(
 				surrgate_loss = surrgate_loss,

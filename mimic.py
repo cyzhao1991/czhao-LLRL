@@ -103,5 +103,5 @@ with tf.device('/gpu:%i'%(0)):
 	sess.run(tf.global_variables_initializer())
 mimic_agent.learn(all_obs, all_con, all_acs)
 saver = tf.train.Saver()
-model_name = 'Data/mimic_data/multi_wind_mimic_no_l1_0.ckpt'
+model_name = 'Data/mimic_data/multi_wind_mimic_leaky_relu_0.ckpt'
 saver.save(sess, model_name)

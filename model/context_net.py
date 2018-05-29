@@ -53,7 +53,7 @@ class Context_Fcnn_Net(Net):
 			# self.c_weights = [tf.Variable( (diagnal_init + .1 * np.random.rand(self.context_dim, dim)).astype(np.float32), \
 			# 	name = 's_vector_h%i'%k) for dim,k in zip(self.module_num, range(self.num_of_layer))]
 			# self.s_vector = [ tf.expand_dims(tf.matmul(self.context, tf.nn.relu(w_c)), 1) for w_c in self.c_weights]
-			self.s_vector = [ tf.expand_dims(tf.matmul(self.context, w_c), 1) for w_c in self.c_weights]
+			self.s_vector = [ tf.expand_dims( tf.nn.leaky_relu(tf.matmul(self.context, w_c), alpha = .01) , 1) for w_c in self.c_weights ]
 			# self.s_vector = [ tf.expand_dims(tf.matmul(self.context, tf.sigmoid(w_c)), 1) for w_c in self.c_weights]
 
 	def build(self, name):

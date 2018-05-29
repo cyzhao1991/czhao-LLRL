@@ -114,11 +114,11 @@ zero_out_s = np.array([np.where(s_nz, 0, s) for s_nz, s in zip(learned_s_nonzero
 
 l1 = []
 l0 = []
-WIND = 3.
+WIND = -3.
 # dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp0/'%WIND
 dir_name = 'Data/dm_control/finetune_ver1/mtl_walker_s1.0/w%1.1fg0.0/test_exp0/'%WIND
 for i in range(100):
-	model_name = dir_name + 'walker-iter%i.ckpt'%(i+1)
+	model_name = dir_name + 'walker-iter%i.ckpt'%(i)
 	learn_agent.saver.restore(sess, model_name)
 	all_s = sess.run(s_vars)
 
@@ -135,9 +135,9 @@ for i in range(100):
 	old_s = new_s
 	old_l2 = new_l2
 
-	cv2.imshow('heatmap', np.abs(new_s)/2. )
-	cv2.imshow('heatmap2', (np.abs(new_s)>.01).astype(np.float64))
-	cv2.waitKey(100)
+	# cv2.imshow('heatmap', np.abs(new_s)/2. )
+	# cv2.imshow('heatmap2', (np.abs(new_s)>.01).astype(np.float64))
+	# cv2.waitKey(100)
 
 
 

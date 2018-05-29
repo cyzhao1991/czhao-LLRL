@@ -19,7 +19,7 @@ class TRPOagent(Agent):
 		self.goal = goal
 
 		self.init_vars()
-
+		self.boost_baseline = True
 		print('Building Network')
 
 
@@ -199,7 +199,12 @@ class TRPOagent(Agent):
 			total_time_step = total_time_step
 		)
 
-		self.baseline.fit(observations, returns)
+		if self.boost_baseline:
+			self.baseline.fit(observations, returns, iter_num = 500)
+			self.boost_baseline = False
+		else:
+			self.baseline.fit(observations, returns, iter_num = 5)
+
 
 		return sample_data
 

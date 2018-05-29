@@ -164,10 +164,10 @@ num_of_paths = 10
 # wind = kwargs.get('wind', 0.)
 # gravity = kwargs.get('gravity', 0.)
 
-SPEED = 1.
+SPEED = -3.
 GRAVITY = 0.
 WIND = 0.
-exp_num = 5
+exp_num = 0
 speed = SPEED
 gravity = GRAVITY
 wind = WIND
@@ -203,7 +203,7 @@ with tf.device('/gpu:%i'%(0)):
 	pms.num_of_paths = num_of_paths
 	pms.subsample_factor = .1
 	pms.max_time_step = 1000
-	pms.max_iter = 1000
+	pms.max_iter = 501
 	pms.max_kl = 0.01
 	pms.min_std = 0.01
 	pms.env_name = 'walker'
@@ -224,14 +224,14 @@ with tf.device('/gpu:%i'%(0)):
 
 	learn_agent = TRPOagent(env, actor, baseline, sess, pms, [None], goal = None)
 
-saver = tf.train.Saver(max_to_keep = 100)
+saver = tf.train.Saver(max_to_keep = 101)
 learn_agent.saver = saver
 sess.run(tf.global_variables_initializer())
 # learn_agent.get_single_path()
 # model_file = '../Data/arv/trpo_stl_Jan28/task_1_exp3/cartpole-iter190.ckpt'
 # model_file = 'Data/checkpoint/stl/exp0_nogoal/cartpole-iter990.ckpt'
 
-model_file = 'Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp0/walker-iter990.ckpt'
+model_file = 'Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp2/walker-iter990.ckpt'
 learn_agent.saver.restore(sess, model_file)
 sess.run(tf.assign(actor.action_logstd, np.zeros([1,6]).astype(np.float32)))
 baseline_var = [v for v in tf.global_variables() if 'baseline' in v.name]
