@@ -11,8 +11,8 @@ g_list = [-5., -2.5, 0., 2.5, 5.]
 # w_list = [-3., -1.5, 0., 1.5, 3.]
 w_list = [-4, -2, -1, 0, 1, 2, 4]
 mtl_w_list = [-3., -1.5, 0., 1.5, 3.]
-filename_list = ['Data/dm_control/stl/walker_s%1.1f/w0.0g0.0/exp%i/shelve_result'%(i,j) for i in s_list for j in [2]]
-# filename_list = ['Data/dm_control/finetune/walker_s1.0/w%1.1fg0.0/exp3/shelve_result'%i for i in mtl_w_list]
+filename_list = ['Data/dm_control/stl/walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%(i) for i in s_list]
+# filename_list = ['Data/dm_control/finetune/walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in mtl_w_list]
 # filename_list = ['Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp3/shelve_result'%i for i in mtl_w_list]
 # filename_list = ['Data/dm_control/finetune_ver1/mtl_walker_s1.0/w3.0g0.0/test_exp%i/shelve_result'%i for i in range(4)]
 
@@ -58,7 +58,7 @@ for i, (key, data) in enumerate(all_result.items()):
 # plt.subplot(2,4,8)
 plt.figure(2)
 plt.title('single task return')
-[plt.plot(y[:100], linewidth = .5) for y in all_result['average_return']]
+[plt.plot(y[:], linewidth = .5) for y in all_result['average_return']]
 plt.grid()
 plt.legend('1234567')
 # plt.show()

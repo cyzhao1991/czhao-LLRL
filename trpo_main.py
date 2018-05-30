@@ -76,13 +76,13 @@ def main(gpu_num, exp_num, speed = None, **kwargs):
 		pms.action_shape = act_size
 		pms.max_action = max_action
 		#pms.num_of_paths = num_of_paths
-		pms.max_iter = 1000
+		pms.max_iter = 501
 		pms.max_time_step = 1000
 		pms.subsample_factor = .1
 		pms.max_kl = 0.01
 		pms.min_std = 0.01
 		pms.env_name = 'walker'
-		pms.max_total_time_step = 16384
+		pms.max_total_time_step = 50000
 		config = tf.ConfigProto(allow_soft_placement = True)
 		config.gpu_options.per_process_gpu_memory_fraction = 0.1
 		config.gpu_options.allow_growth = True
@@ -97,7 +97,7 @@ def main(gpu_num, exp_num, speed = None, **kwargs):
 
 		learn_agent = TRPOagent(env, actor, baseline, sess, pms, [None], goal = None)
 
-	saver = tf.train.Saver(max_to_keep = 100)
+	saver = tf.train.Saver(max_to_keep = 101)
 	learn_agent.saver = saver
 	sess.run(tf.global_variables_initializer())
 	saving_result = learn_agent.learn()

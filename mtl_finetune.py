@@ -15,14 +15,14 @@ from agent.mimic_agent import *
 from actor.context_actor import Context_Gaussian_Actor
 from model.context_net import Context_Fcnn_Net, Concat_Context_Fcnn_Net
 # from agent.context_trpo import Context_TRPO_Agent
-from agent.context_trpo_ver1 import Context_TRPO_Agent
+from agent.context_trpo import Context_TRPO_Agent
 
 # def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = None):
 tf.reset_default_graph()
-exp_num = 5
+exp_num = 0
 WIND = 0.
 SPEED = -3.
-# dir_name = 'Data/dm_control/finetune_ver1/mtl_walker_s%1.1f/w%1.1fg0.0/test_exp0/'%(SPEED,WIND)
+dir_name = 'Data/dm_control/finetune/mtl_walker_s%1.1f/w%1.1fg0.0/test_exp0/'%(SPEED,WIND)
 dir_name = '/disk/scratch/mtl_prog/walker_s%1.1f/w%1.1fg0.0/exp%i'%(SPEED, WIND, exp_num)
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)

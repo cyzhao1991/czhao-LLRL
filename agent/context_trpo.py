@@ -312,7 +312,7 @@ class Context_TRPO_Agent(Agent):
 
 		#self.baseline.fit(observations, contexts, returns)
 		if self.boost_baseline:
-			self.baseline.fit(observations, returns, iter_num = 1000)
+			self.baseline.fit(observations, returns, iter_num = 500)
 			self.boost_baseline = False
 		else:
 			self.baseline.fit(observations, returns, iter_num = 5)
