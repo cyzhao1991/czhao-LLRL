@@ -569,7 +569,9 @@ class Context_TRPO_Agent(Agent):
 				surrgate_loss = surrgate_loss,
 				kl_divergence = kl_divergence,
 				average_return = np.mean(episode_rewards),
-				total_time_step = n_samples
+				total_time_step = n_samples,
+				l1_norm = self.sess.run(self.l1_norm),
+				column_norm = self.sess.run(self.column_loss)
 				)
 		return flat_theta_new, flat_theta_prev, stats
 
