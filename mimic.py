@@ -23,10 +23,10 @@ from model.context_net import Context_Fcnn_Net, Concat_Context_Fcnn_Net
 # filename_list2 = ['Data/mimic_data/walk_%s.npz'%task_name for task_name in task_name_list2]
 
 w_list = [-4., -2., -1., 0., 1., 2., 4.]
-# task_name_list = ['walker_s%1.1f/w0.0g0.0'%w for w in w_list]
-task_name_list = ['walker_s1.0/w%1.1fg0.0'%w for w in w_list]
+task_name_list = ['walker_s%1.1f/w0.0g0.0'%w for w in w_list]
+# task_name_list = ['walker_s1.0/w%1.1fg0.0'%w for w in w_list]
 
-filename_list = ['Data/mimic_data/finetune/%s_exp2.npz'%task_name for task_name in task_name_list]
+filename_list = ['Data/mimic_data/stl/%s_exp0.npz'%task_name for task_name in task_name_list]
 
 all_obs = []
 all_acs = []
@@ -71,7 +71,7 @@ env.target_value = 0.
 default_context = np.array([0., 0., -9.8])
 # env.model.opt.gravity[0] += default_context[0] + 0.
 # env.model.opt.gravity[2] += default_context[2] - 5.
-mod_num = 5
+mod_num = 10
 
 act_size = env.action_space.shape[0]
 max_action = env.action_space.high
@@ -103,5 +103,5 @@ with tf.device('/gpu:%i'%(0)):
 	sess.run(tf.global_variables_initializer())
 mimic_agent.learn(all_obs, all_con, all_acs)
 saver = tf.train.Saver()
-model_name = 'Data/mimic_data/multi_wind_mimic_leaky_relu_0.ckpt'
+model_name = 'Data/mimic_data/multi_speed_mimic_1.ckpt'
 saver.save(sess, model_name)

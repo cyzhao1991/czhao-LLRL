@@ -231,11 +231,12 @@ learn_agent.pms.train_flag = False
 wind_list = [-4, -2, -1, 0, 1, 2, 4]
 overall_mean = np.zeros([7,7])
 overall_std = np.zeros([7,7])
-# speed = -1.
-# wind = 0.
-# gravity = 0.
+speed = -1.5
+wind = 0.
+gravity = 0.
+exp_num = 0
 # model_file = 'Data/dm_control/finetune/walker_s%1.1f/w%1.1fg%1.1f/exp3/walker-iter990.ckpt'%(speed, wind, gravity)
-model_file = 'Data/dm_control/stl/walker_s%1.1f/w%1.1fg%1.1f/exp%i/walker-iter990.ckpt'%(speed, wind, gravity, exp_num)
+model_file = 'Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/walker-iter500.ckpt'%(speed, wind, gravity, exp_num)
 
 learn_agent.saver.restore(sess, model_file)
 

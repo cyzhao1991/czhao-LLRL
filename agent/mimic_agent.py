@@ -79,8 +79,8 @@ class MtlMimicAgent(Agent):
 		self.l2_loss = 0.0005* tf.add_n( [tf.nn.l2_loss(v) for v in self.KB_var_list] )
 		# self.l1_loss = 0.0005 * tf.add_n( [tf.reduce_sum(tf.abs(v)) for v in self.s_var_list] )
 		# self.column_loss = 0.001 * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.s_var_list] ) 
-		self.l1_loss = 0.0005 * tf.add_n( [tf.reduce_sum( tf.nn.leaky_relu(v, alpha = .01) ) for v in self.s_var_list] )
-		self.column_loss = 0.001 * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.nn.leaky_relu(v, alpha = .01), axis=0 )) for v in self.s_var_list] ) 
+		self.l1_loss = 0.0005 * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.s_var_list] )
+		self.column_loss = 0.001 * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.s_var_list] ) 
 
 		self.loss = self.mse_loss + self.l2_loss + self.l1_loss + self.column_loss
 
@@ -91,9 +91,9 @@ class MtlMimicAgent(Agent):
 		# self.train_op = self.optimizer.minimize(self.loss)
 
 
-	def learn(self, x1, x2, y):
+	def learn(self, x1, x2, y, iter_num = 5000):
 		data_size, _ = x1.shape
-		for itern in range(5000):
+		for itern in range(iter_num):
 			idx = np.random.permutation(data_size)
 			start = 0
 			batch_gradients = []

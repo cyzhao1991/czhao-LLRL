@@ -15,15 +15,15 @@ from agent.mimic_agent import *
 from actor.context_actor import Context_Gaussian_Actor
 from model.context_net import Context_Fcnn_Net, Concat_Context_Fcnn_Net
 # from agent.context_trpo import Context_TRPO_Agent
-from agent.context_trpo import Context_TRPO_Agent
+from agent.context_trpo_ver2 import Context_TRPO_Agent
 
 # def main(gpu_num=0, exp_num=0, SPEED = 1., WIND = None):
 tf.reset_default_graph()
 exp_num = 0
 WIND = 0.
 SPEED = -3.
-dir_name = 'Data/dm_control/finetune/mtl_walker_s%1.1f/w%1.1fg0.0/test_exp0/'%(SPEED,WIND)
-dir_name = '/disk/scratch/mtl_prog/walker_s%1.1f/w%1.1fg0.0/exp%i'%(SPEED, WIND, exp_num)
+dir_name = 'Data/dm_control/finetune_ver2/mtl_walker_s%1.1f/w%1.1fg0.0/test_exp0/'%(SPEED,WIND)
+# dir_name = '/disk/scratch/mtl_prog/walker_s%1.1f/w%1.1fg0.0/exp%i'%(SPEED, WIND, exp_num)
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)
 env = Walker2dEnv()
@@ -32,7 +32,7 @@ env.target_value = SPEED
 default_context = np.array([0., 0., -9.8])
 env.model.opt.gravity[0] = WIND
 # env.model.opt.gravity[2] += default_context[2] - 5
-mod_num = 5
+mod_num = 10
 
 act_size = env.action_space.shape[0]
 max_action = env.action_space.high
@@ -69,7 +69,7 @@ with tf.device('/gpu:%i'%(0)):
 	sess.run(tf.global_variables_initializer())
 # mimic_agent.learn(all_obs, all_con, all_acs)
 saver = tf.train.Saver(max_to_keep = 101)
-model_name = 'Data/mimic_data/multi_speed_mimic_0.ckpt'
+model_name = 'Data/mimic_data/multi_speed_mimic_1.ckpt'
 # model_name = 'Data/mimic_data/multi_wind_mimic_leaky_relu_0.ckpt'
 # saver.save(sess, model_name)
 saver.restore(sess, model_name)
@@ -147,5 +147,5 @@ myshelf['saving_result'] = saving_result
 myshelf.close()
 
 
-# if __name__ == '__main__':
-# 	main()
+# # if __name__ == '__main__':
+# # 	main()

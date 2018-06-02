@@ -167,9 +167,9 @@ class Context_TRPO_Agent(Agent):
 		# grav_context = 5. * task_context[0] + self.default_context[2]
 		if self.pms.env_name.startswith('walker'):
 			# print('gravity', grav_context)
-			self.env.target_value = target_speed
-			self.env.model.opt.gravity[0] = wind
-			self.env.model.opt.gravity[2] = gravity
+			# self.env.target_value = target_speed
+			# self.env.model.opt.gravity[0] = wind
+			# self.env.model.opt.gravity[2] = gravity
 			# self.env.model.opt.gravity[0] = self.default_context[0] + task_context[-1] #grav_context[0]
 			# self.env.physics.model.opt.gravity[1] = 0. #grav_context[1]
 			# self.env.physics.model.opt.gravity[2] = grav_context #[2]

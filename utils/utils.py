@@ -39,11 +39,11 @@ def kl_sym_firstfixed(mean, logstd):
 	return kl_sym(m_1, ls_1, m_2, ls_2)
 
 def linesearch(f, x, fullstep, max_backtracks, max_kl):
-	fval, kl = f(x)
+	fval, _ = f(x)
 	for step_frac in .5**np.arange(max_backtracks):
 		new_x = x + step_frac*fullstep
 		newfval, newkl = f(new_x)
-		if newfval < fval and newkl < max_kl: # and newfval < 0:
+		if newfval <= fval and newkl < max_kl: # and newfval < 0:
 			print('valid gradient', step_frac)
 			return new_x
 	print('failed, fullstep')
