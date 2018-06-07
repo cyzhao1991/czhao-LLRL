@@ -6,7 +6,7 @@ from agent import Agent
 
 class MoeAgent(Agent):
 	def __init__(self, session, pms, net, saver = None):
-		super(MoeAgent, self)__init__(None, session, pms, saver)
+		super(MoeAgent, self).__init__(None, session, pms, saver)
 		self.net = net
 		self.init_vars()
 
