@@ -2,7 +2,7 @@ from __future__ import print_function
 import tensorflow as tf
 import numpy as np
 import scipy.signal
-from agent import Agent
+from agent.agent import Agent
 
 class MoeAgent(Agent):
 	def __init__(self, session, pms, net, saver = None):

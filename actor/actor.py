@@ -9,6 +9,7 @@ class Actor(object):
 		self.net = net
 		self.sess = sess
 		self.pms = pms
+		self.name = self.net.name
 
 		self.input_ph = self.net.input
 		self.output_net = self.net.output

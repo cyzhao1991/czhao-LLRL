@@ -8,6 +8,7 @@ class Baseline(object):
 		self.sess = sess
 		self.pms = pms
 		self.var_list = []
+		self.boost_baseline = False
 
 	def fit(self, path):
 		raise NotImplementedError
