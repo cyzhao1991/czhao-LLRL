@@ -6,17 +6,18 @@ from os import listdir
 
 # LAMBDA2_list = np.logspace(-1,3,101)
 # LAMBDA2_list = np.concatenate((LAMBDA2_list[:-1], np.logspace(3,6,101), np.logspace(6,9,101)), axis = 0)
-s_list = [-4., -2., -1., 0., 1., 2., 4.]
+# s_list = [-4., -2., -1., 0., 1., 2., 4.]
+s_list = [-2., 0. ,2.]
 g_list = [-5., -2.5, 0., 2.5, 5.]
 # w_list = [-3., -1.5, 0., 1.5, 3.]
 w_list = [-4, -2, -1, 0, 1, 2, 4]
 mtl_w_list = [-3., -1.5, 0., 1.5, 3.]
-# filename_list = ['Data/dm_control/stl/walker_s%1.1f/w0.0g0.0/exp%i/shelve_result'%(j,i) for i in [0] for j in s_list]
-filename_list = ['Data/dm_control/stl(con)/walker_s%1.1f/w0.0g0.0/exp1/shelve_result'%(i) for i in mtl_w_list]
+filename_list = ['Data/dm_control/stl(con)/walker_s%1.1f/w0.0g0.0/exp%i/shelve_result'%(j,i) for i in [9] for j in s_list]
+# filename_list = ['Data/dm_control/stl(con)/walker_s%1.1f/w0.0g0.0/exp1/shelve_result'%(i) for i in mtl_w_list]
 # filename_list = ['Data/dm_control/finetune/walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in mtl_w_list]
 # filename_list = ['Data/dm_control/finetune/mtl_walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in mtl_w_list]
 # filename_list = ['Data/dm_control/finetune_ver1/mtl_walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in mtl_w_list]
-
+# filename_list = ['Data/dm_control/finetune_ver1/mtl_walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%(i) for i in mtl_w_list]
 shelf_list = [shelve.open(filename) for filename in filename_list]
 # pdb.set_trace()
 all_result = []
@@ -30,7 +31,7 @@ for filename, shelf in zip(filename_list, shelf_list):
 		print('bad      '+filename)
 
 key_list = all_result[0].keys()
-all_result = dict([ (key, np.array([np.array(result[key][:]) for result in all_result]) ) for key in key_list])
+all_result = dict([ (key, np.array([np.array(result[key][:500]) for result in all_result]) ) for key in key_list])
 plt.figure(1)
 # x_data = np.arange(500)
 # x_err_data = np.arange(0,500,10)

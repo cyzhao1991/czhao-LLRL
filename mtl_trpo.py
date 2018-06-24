@@ -6,9 +6,10 @@ import sys, time, os, gym, shelve, argparse, pdb
 
 from utils.paras import Paras_base
 from actor.mtl_actor import MtlGaussianActor
-from agent.mtl_trpo import MtlTrpoAgent
+from agent.mtl_trpo_agent_v2 import MtlTrpoAgent
 from baseline.baseline import *
 from model.mtl_net import MtlFcnnNet
+from model.net import Fcnn
 from gym.envs.mujoco.walker2d import Walker2dEnv
 # from agent.mimic_agent import *
 
@@ -28,7 +29,7 @@ exp_num = 0
 gravity = GRAVITY
 wind = WIND
 
-dir_name = 'Data/dm_control/mtl/walker/w%1.1fg%1.1f/exp%i/'%(wind, gravity, exp_num)
+dir_name = 'Data/dm_control/mtl/walker/multiagent/exp%i/'%(exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/dm_control/mtl/walker/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 if not os.path.isdir(dir_name):
@@ -46,7 +47,7 @@ if not os.path.isdir(dir_name):
 # env = walker.run()
 env = Walker2dEnv()
 env.reward_type = 'bound'
-env.target_value = speed
+env.target_value = 0.
 env.model.opt.gravity[0] += wind
 env.model.opt.gravity[2] += gravity
 # env = cartpole.balance()
@@ -54,11 +55,20 @@ env.model.opt.gravity[2] += gravity
 # obs_spec = env.observation_spec()
 act_size = env.action_space.shape[0]
 max_action = env.action_space.high
-# obs_size = np.sum(np.sum([s.shape for s in obs_spec.values()])) + 1
 obs_size = env.observation_space.shape[0]
 
-s_list = [-2., 0., 4.]
+mod_num = 1
+
+s_list = [-2., 0., 2.]
 task_contexts = [{'speed': s, 'wind':0.} for s in s_list]
+envs = [Walker2dEnv() for _ in range(len(s_list))]
+for e, s in zip(envs, s_list):
+	e.reward_type = 'bound'
+	e.target_value = s
+	e.model.opt.gravity[0] += wind
+	e.model.opt.gravity[2] += gravity
+
+
 
 with tf.device('/gpu:%i'%(gpu_num)):
 	pms = Paras_base().pms
@@ -79,26 +89,32 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	pms.max_kl = 0.01
 	pms.min_std = 0.01
 	pms.env_name = 'walker'
-	pms.max_total_time_step = 50000
+	pms.max_total_time_step = 1000
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
 	config.gpu_options.allow_growth = True
 	sess = tf.Session(config = config)
 	# pms.render = True
 	# actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [True], activation = ['tanh', 'tanh', 'tanh','None'], init = [1. ,1., 1. ,.01])
-	actor_net = MtlFcnnNet(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], [mod_num,mod_num,mod_num,mod_num], name = pms.name_scope, \
+	actor_net = MtlFcnnNet(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], [mod_num,mod_num,mod_num,mod_num], len(s_list),name = pms.name_scope, \
 		if_bias = [True], activation = ['tanh', 'tanh','tanh', 'None'], init = [.1, .1 ,.1,.01])
 	actor = MtlGaussianActor(actor_net, sess, pms)
 
 	baseline_nets = [Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline_task%i'%i, if_bias = [True], \
-		activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1]) for i in range(len(task_contexts))]
+		activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1]) for i in range(len(s_list))]
 	baseline = [BaselineFcnn(b, sess, pms) for b in baseline_nets]
 
-	learn_agent = TRPOagent(env, actor, baseline, sess, pms, [None], goal = None)
+	learn_agent = MtlTrpoAgent(envs, actor, baseline, sess, pms, saver = [None]) # env_contexts =task_contexts, 
+	path_vector = [v for v in tf.trainable_variables() if 'path' in v.name]
+
+	learn_agent.task_var_lists = [[v for v in tf.trainable_variables() if ('t%i'%i in v.name and 'path' not in v.name)] for i in range(3)]
+	learn_agent.init_vars()
 
 saver = tf.train.Saver(max_to_keep = 101)
 learn_agent.saver = saver
 sess.run(tf.global_variables_initializer())
+[sess.run(tf.assign(v, np.array([1.,1.]).astype(np.float32) ) ) for v in path_vector if 'h3' not in v.name]
+[sess.run(tf.assign(v, np.array([0.,1.]).astype(np.float32) ) ) for v in path_vector if 'h3' in v.name]
 saving_result = learn_agent.learn()
 
 sess.close()

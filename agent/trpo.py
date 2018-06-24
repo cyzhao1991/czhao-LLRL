@@ -18,9 +18,9 @@ class TRPOagent(Agent):
 		self.var_list = self.actor.var_list
 		self.goal = goal
 
-		self.init_vars()
+		# self.init_vars()
 		self.boost_baseline = True
-		print('Building Network')
+		# print('Building Network')
 
 
 	def init_vars(self):
@@ -44,16 +44,16 @@ class TRPOagent(Agent):
 
 			self.kl = tf.reduce_mean(kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd))
 
-			surr_grad = tf.gradients(self.surr_loss, self.actor.var_list)
+			surr_grad = tf.gradients(self.surr_loss, self.var_list)
 			self.flat_surr_grad = flatten_var(surr_grad)
 
 			batchsize = tf.cast(tf.shape(self.obs)[0], tf.float32)
 			self.flat_tangent = tf.placeholder(tf.float32, shape = [None], name = 'flat_tangent')
 			kl_firstfixed = kl_sym_firstfixed(self.new_dist_mean, self.new_dist_logstd)
-			grads = tf.gradients(kl_firstfixed, self.actor.var_list) 
+			grads = tf.gradients(kl_firstfixed, self.var_list) 
 			
 			flat_grads = flatten_var(grads) / batchsize
-			self.fvp = tf.gradients(tf.reduce_sum(flat_grads * self.flat_tangent), self.actor.var_list)
+			self.fvp = tf.gradients(tf.reduce_sum(flat_grads * self.flat_tangent), self.var_list)
 			self.flat_fvp = flatten_var(self.fvp)
 
 			self.weights_to_set = tf.placeholder(tf.float32, [None], name = 'weights_to_set')

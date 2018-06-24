@@ -1,7 +1,7 @@
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np
-from net import Net
+from model.net import Net
 
 # class Mtl_Fcnn_Net(Net):
 
@@ -81,6 +81,7 @@ class MtlFcnnNet(Net):
 		super(MtlFcnnNet, self).__init__(sess, input_dim, output_dim, layer_dim, name, **kwargs)
 		self.module_num = module_num
 		self.num_of_hidden_layer = len(self.layer_dim)
+		self.num_of_layer = self.num_of_hidden_layer + 1
 		self.num_of_tasks = num_of_tasks
 
 		self.def_shared_knowledge(self.name)
@@ -138,13 +139,13 @@ class MtlFcnnNet(Net):
 		net = [None] * self.num_of_tasks
 		with tf.name_scope(name):
 			for j in range(self.num_of_tasks):
-				net[j] = [None] * self.num_of_layer
+				net[j] = [None] * (self.num_of_layer+1)
 				net[j][0] = self.input
 				for i in range(self.num_of_layer):
-					tmp_in = net[i][j]
-					shared_h = [tf.activation_fns_call[i](tmp_in @ w + b) for w, b in zip(self.shared_weights[i], self.shared_bias[i])]
-					task_h = tf.activation_fns_call[i](tmp_in @ self.task_weights[i][j] + self.task_bias[i][j])
-					net[j][i] = tf.reduce_mean( tf.stack(shared_h + [task_h], axis = 2) * tf.reshape(self.task_path[i][j], [1,1,-1]), axis = -1)
+					tmp_in = net[j][i]
+					shared_h = [self.activation_fns_call[i](tmp_in @ w + b) for w, b in zip(self.shared_weights[i], self.shared_bias[i])]
+					task_h = self.activation_fns_call[i](tmp_in @ self.task_weights[i][j] + self.task_bias[i][j])
+					net[j][i+1] = tf.reduce_mean( tf.stack(shared_h + [task_h], axis = 2) * tf.reshape(self.task_path[i][j], [1,1,-1]), axis = -1)
 		all_output = [n[-1] for n in net]
 		return all_output, net
 

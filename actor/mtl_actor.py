@@ -6,21 +6,21 @@ from actor.actor import Actor
 class MtlGaussianActor(Actor):
 
 	def __init__(self, mtl_net, sess, pms):
-		super(MtlGaussianActor, self).__init__(net, sess, pms)
+		super(MtlGaussianActor, self).__init__(mtl_net, sess, pms)
 		self.num_of_tasks = mtl_net.num_of_tasks
 
 		with tf.name_scope(self.name):
-			self.action_logstd = [tf.Variable( np.zeros([self.net.output_dim]).astype(np.float32), \
+			self.action_logstd = [tf.Variable( np.zeros([1,self.net.output_dim]).astype(np.float32), \
 				name = 'logstd_t%i'%i) for i in range(self.num_of_tasks)]
 			# self.action_logstd = tf.tile(self.action_logstd_param, )
 			self.action_std = [tf.exp(logstd) for logstd in self.action_logstd]
 
 			if isinstance(self.pms.min_std, float):
-				min_std = np.ones([1, self.net.output_dim]) * self.pms.min_std
+				min_std = np.ones([1,self.net.output_dim]) * self.pms.min_std
 			else:
 				min_std = self.pms.min_std
 			if isinstance(self.pms.max_std, float):
-				max_std = np.ones([1, self.net.output_dim]) * self.pms.max_std
+				max_std = np.ones([1,self.net.output_dim]) * self.pms.max_std
 			else:
 				max_std = self.pms.max_std
 			
@@ -43,7 +43,7 @@ class MtlGaussianActor(Actor):
 				self.action_logstd[task_indexes]], feed_dict = feed_dict )
 
 			a_mean, a_std, a_logstd = map(np.squeeze, [a_mean, a_std, a_logstd] )
-			a_logstd = np.log(a_std)
+			# a_logstd = np.log(a_std)
 			if self.pms.train_flag:
 				action = np.random.normal( a_mean, a_std )
 			else:

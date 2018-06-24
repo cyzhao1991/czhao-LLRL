@@ -16,7 +16,7 @@ from baseline.baseline import BaselineZeros, BaselineFcnn
 
 import gym
 from gym.envs.mujoco.walker2d import Walker2dEnv
-
+from gym.envs.mujoco.reacher import ReacherEnv
 from model.net import *
 from utils.paras import Paras_base
 
@@ -27,16 +27,17 @@ from utils.paras import Paras_base
 # speed = kwargs.get('speed', 0.)
 # wind = kwargs.get('wind', 0.)
 # gravity = kwargs.get('gravity', 0.)
-SPEED = 3.
+SPEED = -2.
 GRAVITY = 0.
 WIND = 0.
 gpu_num = 0
-exp_num = 1
+exp_num = 9
 speed = SPEED #if speed is None else speed
 gravity = GRAVITY
 wind = WIND
 
-dir_name = 'Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
+dir_name = 'new_Data/dm_control/stl/walker_s%1.1f/w0.0g0.0/exp0/'%(speed)
+# dir_name = 'Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 if not os.path.isdir(dir_name):
@@ -83,21 +84,21 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	pms.max_kl = 0.01
 	pms.min_std = 0.01
 	pms.env_name = 'walker'
-	pms.max_total_time_step = 50000
+	pms.max_total_time_step = 10000
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
 	config.gpu_options.allow_growth = True
 	sess = tf.Session(config = config)
 	# pms.render = True
 	# actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [True], activation = ['tanh', 'tanh', 'tanh','None'], init = [1. ,1., 1. ,.01])
-	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh','tanh', 'None'], init = [.1, .1 ,.1,.01])
+	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [True], activation = ['tanh', 'tanh','tanh', 'None'], init = [.1, .1 ,.1,.01])
 	actor = GaussianActor(actor_net, sess, pms)
 
-	baseline_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [False], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
+	baseline_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [True], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
 	baseline = BaselineFcnn(baseline_net, sess, pms)
 
 	learn_agent = TRPOagent(env, actor, baseline, sess, pms, [None], goal = None)
-
+	learn_agent.boost_baseline = False
 saver = tf.train.Saver(max_to_keep = 101)
 learn_agent.saver = saver
 sess.run(tf.global_variables_initializer())

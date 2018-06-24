@@ -29,7 +29,7 @@ env.target_value = 1.
 default_context = np.array([0., 0., -9.8])
 env.model.opt.gravity[0] = WIND
 # env.model.opt.gravity[2] += default_context[2] - 5.
-mod_num = 5
+mod_num = 10
 
 act_size = env.action_space.shape[0]
 max_action = env.action_space.high
@@ -117,7 +117,7 @@ l0 = []
 SPEED = 3.
 WIND = 0.
 # dir_name = 'Data/dm_control/finetune/mtl_walker_s1.0/w%1.1fg0.0/exp0/'%WIND
-dir_name = 'Data/dm_control/finetune/mtl_walker_s%1.1f/w%1.1fg0.0/exp0/'%(SPEED,WIND)
+dir_name = 'Data/dm_control/finetune_ver1/mtl_walker_s%1.1f/w%1.1fg0.0/exp0/'%(SPEED,WIND)
 for i in range(51):
 	model_name = dir_name + 'walker-iter%i.ckpt'%(10*i)
 	learn_agent.saver.restore(sess, model_name)
