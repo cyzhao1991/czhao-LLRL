@@ -1,12 +1,12 @@
 from __future__ import print_function
 # from trpo_main import main
-from mtl_prog import main
+from trpo_main import main
 import numpy as np
 import tensorflow as tf
 # from env.cartpole import CartPoleEnv
 from gym.envs.mujoco.reacher import ReacherEnv
 
-import sys, time, ArgumentParser
+import sys, time#, ArgumentParser
 
 '''
 parser = argparse.ArgumentParser()
@@ -54,4 +54,4 @@ wind = 0.
 # for g in gravity_list:
 for i in range(5):
 	tf.reset_default_graph()
-	main(gpu_num = gpu_num, exp_num = i, SPEED = speed, WIND = wind)#, gravity = gravity_list[2], wind = wind_list[2], speed = target_speed[3])
+	main(gpu_num = gpu_num, exp_num = i, speed = speed)#, gravity = gravity_list[2], wind = wind_list[2], speed = target_speed[3])
