@@ -1,6 +1,6 @@
 from __future__ import print_function
 # from trpo_main import main
-from trpo_main import main
+from transfer_trpo_main import main
 import numpy as np
 import tensorflow as tf
 # from env.cartpole import CartPoleEnv
