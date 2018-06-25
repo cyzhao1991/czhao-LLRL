@@ -37,7 +37,7 @@ def main(gpu_num, exp_num, speed = None, **kwargs):
 	wind = 0.
 
 	# dir_name = 'new_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp0/'%(speed,wind)
-	dir_name = '/disk/scratch/chenyang/new_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp0/'%(speed,wind)
+	dir_name = '/disk/scratch/chenyang/new_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp%i/'%(speed,wind,exp_num)
 	# dir_name = 'Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
 	# dir_name = '/disk/scratch/chenyang/Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
 	# dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)

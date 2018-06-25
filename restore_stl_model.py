@@ -203,22 +203,22 @@ with tf.device('/gpu:%i'%(0)):
 	pms.subsample_factor = 0.1
 	pms.max_time_step = 1000
 	pms.env_name = 'walker_stand'
-	pms.train_flag = False
+	pms.train_flag = True
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
 	config.gpu_options.allow_growth = True
 	sess = tf.Session(config = config)
 
-	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh','tanh', 'None'], init = [1., 1. ,1.,.01])
+	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [True], activation = ['tanh', 'tanh','tanh', 'None'], init = [1., 1. ,1.,.01])
 	actor = GaussianActor(actor_net, sess, pms)
 
-	baselinet_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [False], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
+	baselinet_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [True], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
 	# baseline = BaselineZeros(sess, pms)
 	baseline = BaselineFcnn(baselinet_net, sess, pms)
 
 
 	learn_agent = TRPOagent(env, actor, baseline, sess, pms, [None], goal = None)
-
+	learn_agent.init_vars()
 saver = tf.train.Saver()
 learn_agent.saver = saver
 sess.run(tf.global_variables_initializer())
@@ -236,8 +236,8 @@ wind = 0.
 gravity = 0.
 exp_num = 0
 # model_file = 'Data/dm_control/finetune/walker_s%1.1f/w%1.1fg%1.1f/exp3/walker-iter990.ckpt'%(speed, wind, gravity)
-model_file = 'Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/walker-iter500.ckpt'%(speed, wind, gravity, exp_num)
-
+# model_file = 'Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/walker-iter500.ckpt'%(speed, wind, gravity, exp_num)
+model_file = 'new_Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp0/walker-iter800.ckpt'
 learn_agent.saver.restore(sess, model_file)
 
 '''
