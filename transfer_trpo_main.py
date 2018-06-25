@@ -93,7 +93,7 @@ def main(gpu_num, exp_num, speed = None, **kwargs):
 
 	saver = tf.train.Saver(max_to_keep = 101)
 	learn_agent.saver = saver
-	var_list = [v for v in tf.trainable_variables()]
+	var_list = [v for v in tf.global_variables()]
 	sess.run([v.initializer for v in var_list if not sess.run(tf.is_variable_initialized(v))])
 
 
