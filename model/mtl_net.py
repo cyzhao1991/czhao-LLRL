@@ -145,7 +145,7 @@ class MtlFcnnNet(Net):
 					tmp_in = net[j][i]
 					shared_h = [self.activation_fns_call[i](tmp_in @ w + b) for w, b in zip(self.shared_weights[i], self.shared_bias[i])]
 					task_h = self.activation_fns_call[i](tmp_in @ self.task_weights[i][j] + self.task_bias[i][j])
-					net[j][i+1] = tf.reduce_mean( tf.stack(shared_h + [task_h], axis = 2) * tf.reshape(self.task_path[i][j], [1,1,-1]), axis = -1)
+					net[j][i+1] = tf.reduce_sum( tf.stack(shared_h + [task_h], axis = 2) * tf.reshape(self.task_path[i][j], [1,1,-1]), axis = -1)
 		all_output = [n[-1] for n in net]
 		return all_output, net
 

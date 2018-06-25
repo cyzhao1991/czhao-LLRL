@@ -1,6 +1,6 @@
 from __future__ import print_function
 # from trpo_main import main
-from transfer_trpo_main import main
+from mtl_prog import main
 import numpy as np
 import tensorflow as tf
 # from env.cartpole import CartPoleEnv
@@ -22,7 +22,7 @@ num_of_paths = args.num_of_paths
 num_of_exps = args.num_of_exps
 '''
 gpu_num = 0
-speed = 1.
+speed = -4.
 wind = 0.
 # task_num = 2
 # tmp_num = int(sys.argv[1])

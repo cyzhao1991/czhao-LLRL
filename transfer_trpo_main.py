@@ -26,16 +26,7 @@ def main(gpu_num, exp_num, speed = None, **kwargs):
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
 
-	# with open('log.txt', 'a') as text_file:
-	# 	text_file.write('gpu %i exp %i started.\n'%(gpu_num, exp_num))
 
-
-	# while True:
-	# 	goal = np.random.rand(1,2) * 0.4 - 0.2
-	# 	if np.linalg.norm(goal) < 0.2:
-	# 		break
-
-	# env = walker.run()
 	env = Walker2dEnv()
 	env.reward_type = 'bound'
 	env.target_value = speed

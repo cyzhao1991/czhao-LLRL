@@ -237,7 +237,7 @@ gravity = 0.
 exp_num = 0
 # model_file = 'Data/dm_control/finetune/walker_s%1.1f/w%1.1fg%1.1f/exp3/walker-iter990.ckpt'%(speed, wind, gravity)
 # model_file = 'Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/walker-iter500.ckpt'%(speed, wind, gravity, exp_num)
-model_file = 'new_Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp0/walker-iter800.ckpt'
+model_file = 'new_Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp0/walker-iter1000.ckpt'
 learn_agent.saver.restore(sess, model_file)
 
 '''
