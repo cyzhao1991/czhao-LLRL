@@ -20,9 +20,10 @@ from utils.paras import Paras_base
 # def main(gpu_num, exp_num, env = None, **kwargs):
 speed = 2.
 wind = 0.
+gpu_num = 0
 # task_num = kwargs.get('task_num', 0)
 # num_of_paths = kwargs.get('num_of_paths', 10)
-dir_name = 'ppo_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp0/'%(speed,wind)
+dir_name = '/disk/scratch/chenyang/ppo_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp0/'%(speed,wind)
 # dir_name = 'Data/ppo/stl/%s_exp%i/'%('half_cheetah',exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 if not os.path.isdir(dir_name):
@@ -75,7 +76,7 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	baseline = BaselineFcnn(baselinet_net, sess, pms)
 
 	learn_agent = PPOagent(env, actor, baseline, sess, pms, [None])
-	learn_agent.ini_vars()
+	learn_agent.init_vars()
 
 saver = tf.train.Saver(max_to_keep = 101)
 learn_agent.saver = saver

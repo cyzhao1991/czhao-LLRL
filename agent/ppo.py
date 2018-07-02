@@ -5,7 +5,7 @@ import scipy.signal
 import sys, time, os
 from utils.krylov import cg
 from utils.utils import *
-from agent import Agent
+from agent.agent import Agent
 
 class PPOagent(Agent):
 
@@ -58,7 +58,7 @@ class PPOagent(Agent):
 			# grads = list(zip(grads, self.var_list))
 			self.optimizer = tf.train.AdamOptimizer(learning_rate = self.pms.ppo_lr, epsilon = 1e-5)
 			# self.train_op = self.optimizer.apply_gradients(grads)
-			self.train_op = self.optimizer.minimize( self.surr_loss, self.var_list)
+			self.train_op = self.optimizer.minimize( self.surr_loss, var_list = self.actor_var )
 
 	def get_single_path(self):
 
@@ -152,7 +152,7 @@ class PPOagent(Agent):
 			total_time_step = total_time_step
 		)
 
-		self.baseline.fit(observations, returns, iter = 5)
+		self.baseline.fit(observations, returns, iter_num = 5)
 
 		return sample_data
 
@@ -228,7 +228,7 @@ class PPOagent(Agent):
 			# self.sess.run(self.set_var_from_flat, feed_dict = {self.weights_to_set: theta})
 			train_time = time.time() - t
 
-			for k, v in stats.iteritems():
+			for k, v in stats.items():
 				print("%-20s: %15.5f"%(k,v))
 
 			save_value_list = [stats['average_return'], sample_time, stats['total_time_step'], \
