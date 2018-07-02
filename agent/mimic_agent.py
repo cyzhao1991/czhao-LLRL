@@ -67,21 +67,25 @@ class MtlMimicAgent(Agent):
 
 	def init_vars(self):
 		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.pms.name_scope)]
-		self.KB_var_list = [v for v in self.var_list if 'KB' in v.name]
-		self.s_var_list = [v for v in self.var_list if 's_vector' in v.name]
+		self.KB_var_list = [v for v in self.var_list if 'shared' in v.name]
+		self.s_var_list = [v for v in self.var_list if 'task' in v.name]
 		# self.input_ph = tf.placeholder( tf.float32, [None, self.pms.obs])
 		self.input_ph = self.net.input
-		self.context_ph=self.net.context
-		self.output   =self.net.output
+		self.all_output   = self.net.output
+		self.context_ph = tf.placeholder(tf.float32, [None, self.net.num_of_tasks])
+		self.output = tf.reduce_sum( tf.stack( self.all_output, axis = 1) * tf.expand_dims( self.context_ph, axis = 2), axis = 1)
 		self.output_ph = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'output_placeholder')
 		self.optimizer = tf.train.AdamOptimizer()
 		self.mse_loss = tf.losses.mean_squared_error(self.output_ph, self.output)
-		self.l2_loss = 0.0005* tf.add_n( [tf.nn.l2_loss(v) for v in self.KB_var_list] )
+		self.l2_loss = 0.005* tf.add_n( [tf.nn.l2_loss(v) for v in self.KB_var_list] )
+		
 		# self.l1_loss = 0.0005 * tf.add_n( [tf.reduce_sum(tf.abs(v)) for v in self.s_var_list] )
 		# self.column_loss = 0.001 * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.s_var_list] ) 
-		self.l1_loss = 0.0005 * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.s_var_list] )
-		self.column_loss = 0.001 * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in self.s_var_list] ) 
-
+		self.l1_loss = 0.005 * tf.add_n( [tf.reduce_sum( tf.abs(v) ) for v in self.s_var_list] )
+		# self.l1_loss =tf.constant(0, tf.float32) 
+		tmp_s = [tf.stack([v for v in self.s_var_list if 'h%i'%i in v.name] , axis = 0) for i in range(4)]
+		self.column_loss = 0.01 * tf.add_n( [tf.reduce_sum( tf.reduce_max( tf.abs(v), axis=0 )) for v in tmp_s] ) 
+		# self.column_loss = tf.constant(0, tf.float32)
 		self.loss = self.mse_loss + self.l2_loss + self.l1_loss + self.column_loss
 
 		self.gradients = self.optimizer.compute_gradients( self.loss, var_list = self.var_list )

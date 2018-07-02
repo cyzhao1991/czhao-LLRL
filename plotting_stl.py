@@ -12,11 +12,11 @@ g_list = [-5., -2.5, 0., 2.5, 5.]
 # w_list = [-3., -1.5, 0., 1.5, 3.]
 w_list = [-4, -2, -1, 0, 1, 2, 4]
 mtl_w_list = [-3., -1.5, 0., 1.5, 3.]
-filename_list = ['new_Data/dm_control/stl/walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in [-4,-3,-2,-1,0,1,2,3,4]]
+# filename_list = ['new_Data/dm_control/tl_prog/walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in [-4,-3,-2,-1,0,1,2,3,4]]
 # filename_list = ['Data/dm_control/stl(con)/walker_s%1.1f/w0.0g0.0/exp%i/shelve_result'%(j,i) for i in [9] for j in s_list]
 # filename_list = ['Data/dm_control/stl(con)/walker_s%1.1f/w0.0g0.0/exp1/shelve_result'%(i) for i in mtl_w_list]
 # filename_list = ['Data/dm_control/finetune/walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in mtl_w_list]
-# filename_list = ['Data/dm_control/finetune/mtl_walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in mtl_w_list]
+filename_list = ['Data/dm_control/finetune/mtl_walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in mtl_w_list]
 # filename_list = ['Data/dm_control/finetune_ver1/mtl_walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%i for i in mtl_w_list]
 # filename_list = ['Data/dm_control/finetune_ver1/mtl_walker_s%1.1f/w0.0g0.0/exp0/shelve_result'%(i) for i in mtl_w_list]
 shelf_list = [shelve.open(filename) for filename in filename_list]
@@ -32,7 +32,7 @@ for filename, shelf in zip(filename_list, shelf_list):
 		print('bad      '+filename)
 
 key_list = all_result[0].keys()
-all_result = dict([ (key, np.array([np.array(result[key][:1000]) for result in all_result]) ) for key in key_list])
+all_result = dict([ (key, np.array([np.array(result[key][:]) for result in all_result]) ) for key in key_list])
 # for key,data in enumerate(all_result.items()):
 plt.figure(1)
 # x_data = np.arange(500)
@@ -63,7 +63,7 @@ for i, (key, data) in enumerate(all_result.items()):
 plt.figure(2)
 plt.title('single task return')
 for y in all_result['average_return']:
-	y = np.array([np.mean(y[np.max([0, i-99]):i+1]) for i in range(1000)])
+	y = np.array([np.mean(y[np.max([0, i-99]):i+1]) for i in range(500)])
 	plt.plot(y[:], linewidth = 1.5)
 # [plt.plot(y[:], linewidth = .5) for y in all_result['average_return']]
 plt.grid()

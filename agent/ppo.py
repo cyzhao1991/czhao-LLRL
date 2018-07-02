@@ -16,7 +16,7 @@ class PPOagent(Agent):
 		self.var_list = self.actor.var_list + self.baseline.var_list
 		self.actor_var = self.actor.var_list
 		self.baseline_var = self.baseline.var_list
-		self.init_vars()
+		# self.init_vars()
 
 		print('Building Network')
 
@@ -30,34 +30,35 @@ class PPOagent(Agent):
 			self.old_dist_logstd = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_logstd')
 			self.new_dist_mean = self.actor.output_net
 			self.new_dist_logstd = self.actor.action_logstd
-			self.oldvpred = tf.placeholder(tf.float32, [None], name = 'oldvpred')
+			# self.oldvpred = tf.placeholder(tf.float32, [None], name = 'oldvpred')
 
 			logli_new = log_likelihood(self.action, self.new_dist_mean, self.new_dist_logstd)
 			logli_old = log_likelihood(self.action, self.old_dist_mean, self.old_dist_logstd)
 			self.ratio = tf.exp(logli_new - logli_old)
 
-			self.vf_input = self.baseline.input
-			self.vpred = self.baseline.output
-			self.v = self.baseline.value
-			vpredclipped = self.oldvpred + tf.clip_by_value(self.vpred - self.oldvpred, -self.pms.cliprange, self.pms.cliprange)
-			vf_losses1 = tf.square(self.vpred - self.v)
-			vf_losses2 = tf.square(vpredclipped - self.v)
-			self.vf_loss = tf.reduce_mean( tf.maximum(vf_losses1, vf_losses2) )
+			# self.vf_input = self.baseline.input
+			# self.vpred = self.baseline.output
+			# self.v = self.baseline.value
+			# vpredclipped = self.oldvpred + tf.clip_by_value(self.vpred - self.oldvpred, -self.pms.cliprange, self.pms.cliprange)
+			# vf_losses1 = tf.square(self.vpred - self.v)
+			# vf_losses2 = tf.square(vpredclipped - self.v)
+			# self.vf_loss = tf.reduce_mean( tf.maximum(vf_losses1, vf_losses2) )
 
 			surr_loss1 = - self.ratio * self.advant
 			surr_loss2 = - self.advant * tf.clip_by_value(self.ratio, 1.0-self.pms.cliprange, 1.0+self.pms.cliprange)
 			self.surr_loss = tf.reduce_mean( tf.maximum(surr_loss1, surr_loss2) )
 			self.kl = tf.reduce_mean(kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd))
 
-			self.entropy = tf.reduce_mean(entropy(self.new_dist_logstd) )
+			# self.entropy = tf.reduce_mean(entropy(self.new_dist_logstd) )
 
-			self.clipfrac = tf.reduce_mean(tf.to_float(tf.greater(tf.abs(self.ratio - 1.0), self.pms.cliprange)))
-			self.total_loss = self.surr_loss - self.entropy * self.pms.entropy_coeff + self.vf_loss * self.pms.vf_coeff
-
-			grads = tf.gradients(self.total_loss, self.var_list)
-			grads = list(zip(grads, self.var_list))
+			# self.clipfrac = tf.reduce_mean(tf.to_float(tf.greater(tf.abs(self.ratio - 1.0), self.pms.cliprange)))
+			# self.total_loss = self.surr_loss - self.entropy * self.pms.entropy_coeff + self.vf_loss * self.pms.vf_coeff
+			# self.total_loss = 
+			# grads = tf.gradients(self.total_loss, self.var_list)
+			# grads = list(zip(grads, self.var_list))
 			self.optimizer = tf.train.AdamOptimizer(learning_rate = self.pms.ppo_lr, epsilon = 1e-5)
-			self.train_op = self.optimizer.apply_gradients(grads)
+			# self.train_op = self.optimizer.apply_gradients(grads)
+			self.train_op = self.optimizer.minimize( self.surr_loss, self.var_list)
 
 	def get_single_path(self):
 
@@ -151,6 +152,8 @@ class PPOagent(Agent):
 			total_time_step = total_time_step
 		)
 
+		self.baseline.fit(observations, returns, iter = 5)
+
 		return sample_data
 
 	def train_paths(self, paths):
@@ -162,7 +165,7 @@ class PPOagent(Agent):
 		actor_info_source = sample_data['actor_infos']
 		rtn_source = sample_data['returns']
 
-		val_source = np.squeeze(self.sess.run(self.vpred, feed_dict = {self.vf_input: obs_source}))
+		# val_source = np.squeeze(self.sess.run(self.vpred, feed_dict = {self.vf_input: obs_source}))
 		episode_rewards = np.array([np.sum(path['rewards']) for path in paths])
 
 		batchsize = n_samples//self.pms.nbatch
@@ -171,34 +174,35 @@ class PPOagent(Agent):
 		for iteration in range(self.pms.nepochs):
 			datalogger = []
 			np.random.shuffle(inds)
-			for start in range(0, n_samples, batchsize):
-				end = start + batchsize
-				mb_inds = inds[start:end]
+			# for start in range(0, n_samples, batchsize):
+			# end = start + batchsize
+			# mb_inds = inds[start:end]
+			mb_inds = inds[:self.pms.nbatch]
 
-				obs_n = obs_source[mb_inds]
-				act_n = act_source[mb_inds]
-				adv_n = adv_source[mb_inds]
-				act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[mb_inds]])
-				act_dis_logstd_n = np.array([a_info['logstd'] for a_info in actor_info_source[mb_inds]])
-				val_n = val_source[mb_inds]
-				rtn_n = rtn_source[mb_inds]
-				feed_dict = {self.obs: obs_n,
-							 self.advant: adv_n,
-							 self.action: act_n,
-							 self.old_dist_mean: act_dis_mean_n,
-							 self.old_dist_logstd: act_dis_logstd_n,
-							 self.vf_input: obs_n,
-							 self.oldvpred: val_n,
-							 self.v: rtn_n
-							}
+			obs_n = obs_source[mb_inds]
+			act_n = act_source[mb_inds]
+			adv_n = adv_source[mb_inds]
+			act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[mb_inds]])
+			act_dis_logstd_n = np.array([a_info['logstd'] for a_info in actor_info_source[mb_inds]])
+			# val_n = val_source[mb_inds]
+			# rtn_n = rtn_source[mb_inds]
+			feed_dict = {self.obs: obs_n,
+						 self.advant: adv_n,
+						 self.action: act_n,
+						 self.old_dist_mean: act_dis_mean_n,
+						 self.old_dist_logstd: act_dis_logstd_n
+						 # self.vf_input: obs_n,
+						 # self.oldvpred: val_n,
+						 # self.v: rtn_n
+						}
 
-				datalogger.append(self.sess.run([self.surr_loss, self.vf_loss, self.entropy, self.kl, self.clipfrac, self.train_op], feed_dict = feed_dict)[:-1])
-
+			# datalogger.append(self.sess.run([self.surr_loss, self.vf_loss, self.entropy, self.kl, self.clipfrac, self.train_op], feed_dict = feed_dict)[:-1])
+			datalogger.append(self.sess.run([self.surr_loss, self.kl, self.train_op], feed_dict = feed_dict))
 		stats = dict(
 			surrgate_loss = np.mean([d[0] for d in datalogger], axis = -1),
-			vf_loss = np.mean([d[1] for d in datalogger], axis = -1),
-			entropy = np.mean([d[2] for d in datalogger], axis = -1),
-			kl_divergence = np.mean([d[3] for d in datalogger], axis = -1),
+			# vf_loss = np.mean([d[1] for d in datalogger], axis = -1),
+			# entropy = np.mean([d[2] for d in datalogger], axis = -1),
+			kl_divergence = np.mean([d[1] for d in datalogger], axis = -1),
 			average_return = np.mean(episode_rewards),
 			total_time_step = n_samples
 			)
@@ -207,9 +211,12 @@ class PPOagent(Agent):
 
 
 	def learn(self):
-		dict_keys = ['average_return', 'sample_time', 'total_time_step', 'vf_loss', 'entropy',\
+		# dict_keys = ['average_return', 'sample_time', 'total_time_step', 'vf_loss', 'entropy',\
+		# 	'train_time', 'surrgate_loss', 'kl_divergence', 'iteration_number']
+		dict_keys = ['average_return', 'sample_time', 'total_time_step',\
 			'train_time', 'surrgate_loss', 'kl_divergence', 'iteration_number']
 		saving_result = dict([(v, []) for v in dict_keys])
+
 
 		for iter_num in range(self.pms.max_iter):
 			print('\n******************* Iteration %i *******************'%iter_num)
@@ -224,7 +231,7 @@ class PPOagent(Agent):
 			for k, v in stats.iteritems():
 				print("%-20s: %15.5f"%(k,v))
 
-			save_value_list = [stats['average_return'], sample_time, stats['total_time_step'], stats['vf_loss'], stats['entropy'], \
+			save_value_list = [stats['average_return'], sample_time, stats['total_time_step'], \
 				train_time, stats['surrgate_loss'], stats['kl_divergence'], iter_num]
 
 			[saving_result[k].append(v) for (k,v) in zip(dict_keys, save_value_list)]

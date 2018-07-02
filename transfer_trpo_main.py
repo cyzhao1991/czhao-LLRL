@@ -21,8 +21,8 @@ def main(gpu_num, exp_num, speed = None, **kwargs):
 	# speed = 1.
 	# wind = 0.
 	wind = 0.
-	dir_name = '/disk/scratch/chenyang/new_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp0/'%(speed,wind)
-	dir_name = 'new_Data/dm_control/stl_ft/walker_s%1.1f/w%1.1fg0.0/exp%i/'%(speed, wind, exp_num)
+	dir_name = '/disk/scratch/chenyang/new_Data/dm_control/stl_ft/walker_s%1.1f/w%1.1fg0.0/exp%i/'%(speed,wind,exp_num)
+	# dir_name = 'new_Data/dm_control/stl_ft/walker_s%1.1f/w%1.1fg0.0/exp%i/'%(speed, wind, exp_num)
 	if not os.path.isdir(dir_name):
 		os.makedirs(dir_name)
 

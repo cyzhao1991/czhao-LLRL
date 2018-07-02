@@ -61,8 +61,8 @@ class Paras_base(object):
 	flags.DEFINE_float('vf_coeff', 1., 'value loss co-efficient c1')
 	flags.DEFINE_float('ppo_lr', 3e-4, 'learning rate for ppo')
 
-	flags.DEFINE_integer('nbatch', 32, 'number of batches per iteration')
-	flags.DEFINE_integer('nepochs', 10, 'number of updating epochs')
+	flags.DEFINE_integer('nbatch', 4096, 'number of batches per iteration')
+	flags.DEFINE_integer('nepochs', 20, 'number of updating epochs')
 
 	'''
 	others

@@ -32,17 +32,17 @@ with tf.device('/gpu:%i'%(0)):
 	pms.num_of_paths = 10
 	pms.subsample_factor = 0.1
 	pms.max_time_step = 1000
-	pms.env_name = 'walker_stand'
+	pms.env_name = 'walker'
 	pms.train_flag = False
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
 	config.gpu_options.allow_growth = True
 	sess = tf.Session(config = config)
 
-	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh','tanh', 'None'], init = [1., 1. ,1.,.01])
+	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [True], activation = ['tanh', 'tanh','tanh', 'None'], init = [1., 1. ,1.,.01])
 	actor = GaussianActor(actor_net, sess, pms)
 
-	baselinet_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [False], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
+	baselinet_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [True], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
 	# baseline = BaselineZeros(sess, pms)
 	baseline = BaselineFcnn(baselinet_net, sess, pms)
 
@@ -53,10 +53,10 @@ saver = tf.train.Saver()
 learn_agent.saver = saver
 sess.run(tf.global_variables_initializer())
 
-model_file_prefix = 'Data/dm_control/stl/'
-model_file_suffix = '/exp0/walker-iter990.ckpt'
+model_file_prefix = 'new_Data/dm_control/stl/'
+model_file_suffix = '/exp0/walker-iter1000.ckpt'
 # w_list = [-3., -1.5, 0., 1.5, 3.]
-w_list = [-4, -2, -1, 0, 1, 2, 4]
+w_list = [-4, -3, -2, -1, 0, 1, 2,3, 4]
 task_name_list = ['walker_s%1.1f/w0.0g0.0'%w for w in w_list]
 for w, task_name in zip(w_list, task_name_list):
 	# env.model.opt.gravity[0] = w
@@ -74,5 +74,9 @@ for w, task_name in zip(w_list, task_name_list):
 	res = np.array( [s['rewards'] for s in stats] )
 	print( (np.mean([np.sum(a) for a in res]) , np.std([np.sum(a) for a in res]) ))
 
-	data_filename = 'Data/mimic_data/stl/%s_exp0.npz'%task_name
+	data_filename = 'new_Data/mimic_data/stl/%s_exp0.npz'%task_name
+	dir_name = 'new_Data/mimic_data/stl/'
+	if not os.path.isdir(dir_name):
+		os.makedirs(dir_name)
+
 	np.savez(data_filename, obs = obs, acs = acs, res = res)
