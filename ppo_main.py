@@ -71,7 +71,7 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [True], activation = ['tanh', 'tanh', 'tanh', 'None'], init = [1. ,1.,1., .01])
 	actor = GaussianActor(actor_net, sess, pms)
 
-	baselinet_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [True], activation = ['tanh','tanh', 'tanh','None'], init = [1. ,1.,1., .1])
+	baselinet_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [True], activation = ['relu','relu', 'relu','None'], init = [1. ,1.,1., .1])
 	# baseline = BaselineZeros(sess, pms)
 	baseline = BaselineFcnn(baselinet_net, sess, pms)
 

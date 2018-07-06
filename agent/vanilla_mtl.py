@@ -7,9 +7,9 @@ from utils.krylov import cg
 from utils.utils import *
 from agent.agent import Agent
 
-class VanillaMtl(Agent):
+class PpoMtl(Agent):
 	def __init__(self, envs, mtl_actor, baselines, session, pms, env_contexts = None, saver = None,**kwargs):
-		super(VanillaMtl, self).__init__(envs, session, pms, saver)
+		super(PpoMtl, self).__init__(envs, session, pms, saver)
 		self.actor = mtl_actor
 		self.baseline = baselines
 		self.task_diff = 'task' if isinstance(envs, list) else 'context'
@@ -20,8 +20,8 @@ class VanillaMtl(Agent):
 		self.shared_var_list = self.actor.shared_var_list
 		self.task_var_lists = self.actor.task_var_list
 
-		for baseline in self.baseline:
-			baseline.boost_baseline = True 
+		# for baseline in self.baseline:
+		# 	baseline.boost_baseline = True 
 		# self.boost_baseline = [True] * self.num_of_tasks
 
 
@@ -39,16 +39,7 @@ class VanillaMtl(Agent):
 			self.dist_logstd = [tf.tile(lsd, [ tf.shape(self.obs)[0], 1 ] ) for lsd in self.actor.action_logstd]
 			self.new_dist_logstd = tf.reduce_sum( tf.stack( self.dist_logstd, axis = 1) * tf.expand_dims(self.task_descriptor, axis = 2), axis = 1)
 
-			# self.dist_mean = tf.reduce_sum(tf.boolean_mask(self.new_dist_mean, self.task_descriptor), axis = 0)
-
-			# self.dist_logstd = tf.reduce_sum(tf.boolean_mask(self.new_dist_logstd, self.task_descriptor), axis = 0)
-
-
-			self.flat_tangent = tf.placeholder(tf.float32, shape = [None], name = 'flat_tangent')
-			self.weights_to_set = tf.placeholder(tf.float32, shape = [None], name = 'weights_to_set')
-
-			batchsize = tf.cast(tf.shape(self.obs)[0], tf.float32)
-			logli_new = log_likelihood(self.action, self.dist_mean, self.dist_logstd)
+			logli_new = log_likelihood(self.action, self.new_dist_mean, self.new_dist_logstd)
 			logli_old = log_likelihood(self.action, self.old_dist_mean, self.old_dist_logstd)
 
 			self.ratio = tf.exp(logli_new - logli_old)
@@ -56,35 +47,51 @@ class VanillaMtl(Agent):
 			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange)
 			self.surr_loss = tf.reduce_mean(tf.maximum(surr_loss1, surr_loss2))
 
-			self.optimizer = tf.train.AdamOptimizer( learning_rate = .001, name = 'Adam')
-			self.train_op = self.optimizer.minimize(  self.surr_loss, self.var_list )
-			# self.kl = tf.reduce_mean( kl_sym(self.old_dist_mean, self.old_dist_logstd, self.dist_mean, self.dist_logstd) )
+			self.optimizer = tf.train.AdamOptimizer( learning_rate = self.pms.ppo_lr, epsilon = 1e-5 )
+			self.train_op = self.optimizer.minimize(  self.surr_loss, var_list = self.var_list )
+			self.kl = tf.reduce_mean( kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd) )
 
-			# self.kl_beta = tf.constant(2., tf.float32)
+	def init_align_vars(self):
 
-			# self.set_shared_var_from_flat = set_from_flat(self.shared_var_list, self.weights_to_set)
-			# self.set_task_var_from_flat = [set_from_flat(t_var, self.weights_to_set) for t_var in self.task_var_lists]
-			# self.set_all_var_from_flat = set_from_flat(self.var_list, self.weights_to_set)
+		with tf.name_scope(self.pms.name_scope):
+			self.obs = self.actor.input_ph
+			self.advant = tf.placeholder(tf.float32, [None], name = 'advantages')
+			self.action = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'action')
+			self.old_dist_mean = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_mean')
+			self.old_dist_logstd = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_logstd')
+			self.task_descriptor = tf.placeholder(tf.float32, [None, self.num_of_tasks], name = 'task_descriptor')
+			self.dist_mean = self.actor.output_net
+			self.new_dist_mean = tf.reduce_sum( tf.stack( self.dist_mean, axis = 1) * tf.expand_dims( self.task_descriptor, axis = 2), axis = 1)
+			self.dist_logstd = [tf.tile(lsd, [ tf.shape(self.obs)[0], 1 ] ) for lsd in self.actor.action_logstd]
+			self.new_dist_logstd = tf.reduce_sum( tf.stack( self.dist_logstd, axis = 1) * tf.expand_dims(self.task_descriptor, axis = 2), axis = 1)
 
-			# self.flatten_var = flatten_var(self.var_list)
-			# self.flatten_shared_var = flatten_var(self.shared_var_list)
-			# self.flatten_task_var = [flatten_var(t_var) for t_var in self.task_var_lists]
+			logli_new = log_likelihood(self.action, self.new_dist_mean, self.new_dist_logstd)
+			logli_old = log_likelihood(self.action, self.old_dist_mean, self.old_dist_logstd)
 
-			# kl_firstfixed = tf.reduce_sum( [ kl_sym_firstfixed( d_mean, d_logstd )for d_mean, d_logstd in zip(self.new_dist_mean, self.new_dist_logstd)] )
-			# # kl_firstfixed = kl_sym_firstfixed(self.dist_mean, self.dist_logstd)
-			# all_surr_grad = tf.gradients( self.surr_loss, self.var_list )
-			# shared_surr_grad = tf.gradients(self.surr_loss, self.shared_var_list)
-			# task_surr_grad = [tf.gradients(self.surr_loss, t_var) for t_var in self.task_var_lists]
+			self.ratio = tf.exp(logli_new - logli_old)
+			surr_loss1 = -self.ratio * self.advant
+			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange)
+			surr_loss = tf.maximum(surr_loss1, surr_loss2)
+			task_surr_loss = tf.reduce_mean(tf.expand_dims(surr_loss, axis = 1) * self.task_descriptor, axis = 0)
+			# print ( flatten_var(tf.gradients(task_surr_loss[0] )
+			tmp_gradients = [tf.gradients( task_surr_loss[i], self.shared_var_list) for i in range(self.num_of_tasks) ]
+			task_gradients = [flatten_var(g) for g in tmp_gradients]
+			# task_gradients = [flatten_var( tf.gradients(task_surr_loss[i], self.shared_var_list) ) for i in range(self.num_of_tasks)]
+			self.alignment_penalty = tf.add_n( [ tf.reduce_sum( task_gradients[0] * task_gradients[i+1] ) for i in range(self.num_of_tasks-1)] )
+			self.surr_loss = tf.reduce_mean(surr_loss)
 
-			# self.flat_all_surr_grad = flatten_var( all_surr_grad )
-			# self.flat_shared_surr_grad = flatten_var(shared_surr_grad)
-			# self.flat_task_surr_grad = [flatten_var(g) for g in task_surr_grad]
+			# self.gradients = [flatten_var(tf.gradients(self.surr_loss, var_list = self.var_list)) for ]
+
+			self.optimizer = tf.train.AdamOptimizer( learning_rate = self.pms.ppo_lr, epsilon = 1e-5 )
+			self.train_op = self.optimizer.minimize(  self.surr_loss + 1. * self.alignment_penalty, var_list = self.var_list )
+			self.kl = tf.reduce_mean( kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd) )
 
 
 	def get_single_path(self, task_index):
 		observations = []
 		actions = []
 		rewards = []
+		descriptor = []
 		actor_infos = []
 
 		if self.task_diff is 'task':
@@ -111,7 +118,8 @@ class VanillaMtl(Agent):
 		# if self.pms.env_name.startswith('walker'):
 		# 	self.env.model.opt.gravity[2] = gravity
 		state = env.reset()
-
+		task_context = np.zeros(self.num_of_tasks).astype(np.float32)
+		task_context[task_index] = 1.
 		if self.pms.render:
 			env.render()
 
@@ -124,6 +132,7 @@ class VanillaMtl(Agent):
 			actions.append(action)
 			rewards.append(reward)
 			actor_infos.append(actor_info)
+			descriptor.append(task_context)
 			if terminal:
 				break
 			state = next_state
@@ -131,7 +140,7 @@ class VanillaMtl(Agent):
 				env.render()
 		if self.pms.render:
 			pass
-		path = dict(observations = np.array(observations), actions = np.array(actions), rewards = np.array(rewards), actor_infos = actor_infos)
+		path = dict(observations = np.array(observations), actions = np.array(actions), rewards = np.array(rewards), descriptor = np.array(descriptor), actor_infos = actor_infos)
 		return path
 
 	def get_paths(self, task_index, prefix = '', verbose = True):
@@ -159,19 +168,26 @@ class VanillaMtl(Agent):
 		print(prefix + 'All paths sampled. Total sampled paths: %i. Total time usesd: %f.'%(path_count, time.time() - t) )
 		return paths
 
-	def process_paths(self, paths, baseline, fit = True):
+	def process_paths(self, paths, fit = True):
+
 
 		total_time_step = 0
-		for path in paths:
-			total_time_step += len(path['rewards'])
-			path['baselines'] = baseline.predict(path)
-			path['returns'] = discount(path['rewards'], self.pms.discount)
-			if not self.pms.gae_flag:
-				path['advantages'] = path['returns'] - path['baselines']
-			else:
-				b = np.append(path['baselines'], path['baselines'][-1])
-				deltas = path['rewards'] + self.pms.discount * b[1:] - b[:-1]
-				path['advantages'] = discount(deltas, self.pms.discount * self.pms.gae_lambda)
+		for pp, baseline in zip(paths, self.baseline):
+			for path in pp:
+				total_time_step += len(path['rewards'])
+				path['baselines'] = baseline.predict(path)
+				path['returns'] = discount(path['rewards'], self.pms.discount)
+				if not self.pms.gae_flag:
+					path['advantages'] = path['returns'] - path['baselines']
+				else:
+					b = np.append(path['baselines'], path['baselines'][-1])
+					deltas = path['rewards'] + self.pms.discount * b[1:] - b[:-1]
+					path['advantages'] = discount(deltas, self.pms.discount * self.pms.gae_lambda)
+			tmp_obs = np.concatenate([path['observations'] for path in pp])
+			tmp_rns = np.concatenate([path['returns'] for path in pp])
+			baseline.fit(tmp_obs, tmp_rns, iter_num = 5)
+
+		paths = sum(paths, [])
 
 		observations = np.concatenate([path['observations'] for path in paths])
 		actions = np.concatenate([path['actions'] for path in paths])
@@ -179,6 +195,7 @@ class VanillaMtl(Agent):
 		advantages = np.concatenate([path['advantages'] for path in paths])
 		returns = np.concatenate([path['returns'] for path in paths])
 		actor_infos = np.concatenate([path['actor_infos'] for path in paths])
+		descriptor = np.concatenate([path['descriptor'] for path in paths])
 		if self.pms.center_adv:
 			advantages -= np.mean(advantages)
 			advantages /= (np.std(advantages) + 1e-8)
@@ -191,149 +208,78 @@ class VanillaMtl(Agent):
 			advantages = advantages,
 			actor_infos = actor_infos,
 			paths = paths,
+			descriptor = descriptor,
 			total_time_step = total_time_step
 		)
 
-		if fit:
-			if baseline.boost_baseline:
-				baseline.fit(observations, returns, iter_num = 5)
-				baseline.boost_baseline = False
-			else:
-				baseline.fit(observations, returns, iter_num = 5)
-		else:
-			pass
+		# if fit:
+		# 	if baseline.boost_baseline:
+		# 		baseline.fit(observations, returns, iter_num = 500)
+		# 		baseline.boost_baseline = False
+		# 	else:
+		# 		baseline.fit(observations, returns, iter_num = 5)
+		# else:
+		# 	pass
 
 		return sample_data
 
-
 	def train_paths(self, paths):
-		flat_theta_prev = self.sess.run(self.flatten_var)
-		flat_shared_prev = self.sess.run(self.flatten_shared_var)
-		flat_task_prev = [self.sess.run(var) for var in self.flatten_task_var]
 
-		sample_data = [None] * len(paths)
-		for i, (path, baseline) in enumerate(zip(paths, self.baseline)):
-			sample_data[i] = self.process_paths(path, baseline)
-		episode_rewards = [np.array([np.sum(p['rewards']) for p in sd['paths']]) for sd in sample_data]
-		n_sampless = [sd['total_time_step'] for sd in sample_data]
-		surrgate_loss = [None] * len(paths)
-		kl_divergence = [None] * len(paths)
+		episode_rewards = [np.mean(np.array([np.sum(path['rewards']) for path in pp])) for pp in paths]
 
-		batchsize = int(self.pms.max_total_time_step * self.pms.subsample_factor)
+		sample_data = self.process_paths(paths)
+		obs_source = sample_data['observations']
+		act_source = sample_data['actions']
+		adv_source = sample_data['advantages']
+		n_samples = sample_data['total_time_step']
+		actor_info_source = sample_data['actor_infos']
+		rtn_source = sample_data['returns']
+		des_source = sample_data['descriptor']
+		# val_source = np.squeeze(self.sess.run(self.vpred, feed_dict = {self.vf_input: obs_source}))
 
-		'''
-			Gathering Gradients for Shared Vars
-		'''
-		shared_grads = [None] * len(paths)
-		indses = [None] * len(paths)
-		for i, sd in enumerate(sample_data):
+		batchsize = n_samples//self.pms.nbatch
 
-			n_samples = sd['total_time_step']
-			inds = np.random.choice(n_samples, int(np.floor(n_samples * self.pms.subsample_factor)), replace = False)
-			indses[i] = inds
-			feed_dict = {self.obs: sd['observations'][inds],
-						 self.advant: sd['advantages'][inds],
-						 self.action: sd['actions'][inds],
-						 self.old_dist_mean: np.array([a_info['mean'] for a_info in sd['actor_infos'][inds]]),
-						 self.old_dist_logstd: np.array([a_info['logstd'] for a_info in sd['actor_infos'][inds]])
+		inds = np.arange(n_samples)
+		for iteration in range(self.pms.nepochs):
+			datalogger = []
+			np.random.shuffle(inds)
+			# for start in range(0, n_samples, batchsize):
+			# end = start + batchsize
+			# mb_inds = inds[start:end]
+			mb_inds = inds[:self.pms.nbatch]
+
+			obs_n = obs_source[mb_inds]
+			act_n = act_source[mb_inds]
+			adv_n = adv_source[mb_inds]
+			des_n = des_source[mb_inds]
+			act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[mb_inds]])
+			act_dis_logstd_n = np.array([a_info['logstd'] for a_info in actor_info_source[mb_inds]])
+			# val_n = val_source[mb_inds]
+			# rtn_n = rtn_source[mb_inds]
+			feed_dict = {self.obs: obs_n,
+						 self.advant: adv_n,
+						 self.action: act_n,
+						 self.old_dist_mean: act_dis_mean_n,
+						 self.old_dist_logstd: act_dis_logstd_n,
+						 self.task_descriptor: des_n
+						 # self.vf_input: obs_n,
+						 # self.oldvpred: val_n,
+						 # self.v: rtn_n
 						}
-			shared_grads[i] = self.sess.run( self.flat_shared_surr_grad[i], feed_dict = feed_dict )
-			# self.sess.run(self.train_op[i], feed_dict = feed_dict)
-		# shared_grad = self.sess.run(self.flatten_shared_var) - flat_shared_prev
-		shared_grad = - np.nanmean(shared_grads, axis = 0)
-		inv_s = [None] * len(paths)
 
-		for i, sd in enumerate(sample_data):
-			inds = indses[i]
-			feed_dict = {self.obs: sd['observations'][inds],
-						 self.advant: sd['advantages'][inds],
-						 self.action: sd['actions'][inds],
-						 self.old_dist_mean: np.array([a_info['mean'] for a_info in sd['actor_infos'][inds]]),
-						 self.old_dist_logstd: np.array([a_info['logstd'] for a_info in sd['actor_infos'][inds]])
-						}
-			def fisher_vector_product(p):
-				feed_dict[self.flat_tangent] = p
-				return self.sess.run(self.flat_fvp_shared[i], feed_dict = feed_dict)
-
-			sAs = shared_grad.dot(fisher_vector_product(shared_grad))
-			inv_s[i] = np.sqrt(sAs/(1.*self.pms.max_kl))
-			# self.sess.run( self.set_shared_var_from_flat, feed_dict = {self.weights_to_set: flat_shared_prev + shared_grad/(inv_s[i]+1e-8)})
-			# print(self.sess.run(self.kl[i], feed_dict = feed_dict))
-		# print(inv_s)
-		shared_grad = shared_grad / (np.sum(inv_s) + 1e-8)
-
-		def loss_function(x):
-			self.sess.run(self.set_shared_var_from_flat, feed_dict = {self.weights_to_set: x})
-			sls = [None] * self.num_of_tasks
-			kls = [None] * self.num_of_tasks
-			for i,sd in enumerate(sample_data):
-				inds = indses[i]
-				feed_dict = {self.obs: sd['observations'][inds],
-							 self.advant: sd['advantages'][inds],
-							 self.action: sd['actions'][inds],
-							 self.old_dist_mean: np.array([a_info['mean'] for a_info in sd['actor_infos'][inds]]),
-							 self.old_dist_logstd: np.array([a_info['logstd'] for a_info in sd['actor_infos'][inds]])
-							}
-				sls[i], kls[i] = self.sess.run( [self.surr_loss[i], self.kl[i]], feed_dict = feed_dict )
-			return np.sum(sls), np.max(kls)
-
-		flat_shared_new = linesearch(loss_function, flat_shared_prev, shared_grad, self.pms.max_backtracks, self.pms.max_kl / 2.)
-		shared_grad = flat_shared_new - flat_shared_prev
-		self.sess.run( self.set_shared_var_from_flat, feed_dict = {self.weights_to_set: flat_shared_prev + shared_grad})
-
-		'''
-			Gathering Gradients for Task Vars
-		'''
-
-		task_grads = [None] * len(paths)
-		for i, sd in enumerate(sample_data):
-
-			# self.sess.run(self.set_shared_var_from_flat, feed_dict = {self.weights_to_set: flat_shared_prev})
-
-			n_samples = sd['total_time_step']
-			# inds = np.random.choice(n_samples, int(np.floor(n_samples * self.pms.subsample_factor)), replace = False)
-			inds = indses[i]
-			feed_dict = {self.obs: sd['observations'][inds],
-						 self.advant: sd['advantages'][inds],
-						 self.action: sd['actions'][inds],
-						 self.old_dist_mean: np.array([a_info['mean'] for a_info in sd['actor_infos'][inds]]),
-						 self.old_dist_logstd: np.array([a_info['logstd'] for a_info in sd['actor_infos'][inds]])
-						}
-			task_grads[i] = self.sess.run( self.flat_task_surr_grad[i], feed_dict = feed_dict )
-			feed_dict[self.flat_tangent] = shared_grad
-			additional_c = self.sess.run(self.flat_c[i], feed_dict = feed_dict)
-			# print(self.sess.run(self.kl[i] , feed_dict = feed_dict))
-			def fisher_vector_product(p):
-				feed_dict[self.flat_tangent] = p
-				return self.sess.run(self.flat_fvp[i], feed_dict = feed_dict)
-
-			# g = self.sess.run(self.flat_task_surr_grad[i], feed_dict = feed_dict)
-			step_gradient = cg(fisher_vector_product, -task_grads[i], cg_iters = self.pms.cg_iters)
-			sAs = step_gradient.dot( fisher_vector_product(step_gradient) )
-			inv_stepisze = np.sqrt( sAs/(2.*self.pms.max_kl) )
-			fullstep_gradient = step_gradient / (inv_stepisze + 1e-8)
-
-			A_1C = cg( fisher_vector_product, additional_c, cg_iters = self.pms.cg_iters)
-
-			def loss_function(x):
-				# self.sess.run( self.set_shared_var_from_flat, feed_dict = {self.weights_to_set: flat_shared_prev + shared_grad})
-				self.sess.run( self.set_task_var_from_flat[i], feed_dict = {self.weights_to_set: x - A_1C})
-				surr_loss, kl = self.sess.run( [self.surr_loss[i], self.kl[i]], feed_dict = feed_dict)
-				return surr_loss, kl
-
-			flat_theta_new = linesearch(loss_function, flat_task_prev[i], fullstep_gradient, self.pms.max_backtracks, self.pms.max_kl)
-
-			surrgate_loss[i], kl_divergence[i] = loss_function(flat_theta_new)
-
-		self.sess.run( self.set_shared_var_from_flat, feed_dict = {self.weights_to_set: flat_shared_prev + shared_grad})
-
+			# datalogger.append(self.sess.run([self.surr_loss, self.vf_loss, self.entropy, self.kl, self.clipfrac, self.train_op], feed_dict = feed_dict)[:-1])
+			datalogger.append(self.sess.run([self.surr_loss, self.kl, self.train_op], feed_dict = feed_dict))
 		stats = dict(
-				surrgate_loss = surrgate_loss,
-				kl_divergence = kl_divergence,
-				average_return = [np.mean(er) for er in episode_rewards],
-				total_time_step = n_sampless
-				)
+			surrgate_loss = np.mean([d[0] for d in datalogger], axis = -1),
+			# vf_loss = np.mean([d[1] for d in datalogger], axis = -1),
+			# entropy = np.mean([d[2] for d in datalogger], axis = -1),
+			kl_divergence = np.mean([d[1] for d in datalogger], axis = -1),
+			average_return = np.array(episode_rewards),
+			total_time_step = n_samples
+			)
+
 		return stats
+
 
 	def learn(self, iteration = None):
 		if iteration is None: iteration = self.pms.max_iter
