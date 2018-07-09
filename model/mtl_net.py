@@ -161,7 +161,8 @@ class MtlFcnnNet2(Net):
 		self.num_of_layer = self.num_of_hidden_layer + 1
 		self.num_of_tasks = num_of_tasks
 
-		self.def_shared_knowledge(self.name)
+		if not np.all(self.module_num == 0):
+			self.def_shared_knowledge(self.name)
 		if not self.task_module_num == 0: 
 			self.def_task_knowledge(self.name, self.num_of_tasks)
 		self.def_task_path(self.name, self.num_of_tasks)
@@ -221,11 +222,16 @@ class MtlFcnnNet2(Net):
 				net[j][0] = self.input
 				for i in range(self.num_of_layer):
 					tmp_in = net[j][i]
-					shared_h = [self.activation_fns_call[i](tmp_in @ w + b) for w, b in zip(self.shared_weights[i], self.shared_bias[i])]
-					if not self.task_module_num == 0:
+					if not self.task_module_num == 0 and not self.module_num[i] == 0:
+						shared_h = [self.activation_fns_call[i](tmp_in @ w + b) for w, b in zip(self.shared_weights[i], self.shared_bias[i])]
+					# if not self.task_module_num == 0:
 						task_h = self.activation_fns_call[i](tmp_in @ self.task_weights[i][j] + self.task_bias[i][j])
 						tmp_var = tf.stack(shared_h + [task_h], axis = 2)
-					else:
+					elif self.module_num[i] == 0:
+						task_h = self.activation_fns_call[i](tmp_in @ self.task_weights[i][j] + self.task_bias[i][j])
+						tmp_var = tf.stack([task_h], axis = 2)
+					elif self.task_module_num == 0:
+						shared_h = [self.activation_fns_call[i](tmp_in @ w + b) for w, b in zip(self.shared_weights[i], self.shared_bias[i])]
 						tmp_var = tf.stack(shared_h, axis = 2)
 					net[j][i+1] = tf.reduce_sum( tmp_var * tf.reshape(self.task_path[i][j], [1,1,-1]), axis = -1)
 		all_output = [n[-1] for n in net]
