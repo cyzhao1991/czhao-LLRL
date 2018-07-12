@@ -24,7 +24,7 @@ tf.reset_default_graph()
 GRAVITY = 0.
 WIND = 0.
 gpu_num = 0
-exp_num = 1
+exp_num = 0
 # speed = SPEED #if speed is None else speed
 gravity = GRAVITY
 wind = WIND
@@ -47,7 +47,7 @@ obs_size = env.observation_space.shape[0]
 mod_num = 1
 
 s_list = [-2., 0., 2.]
-task_contexts = [{'speed': 2., 'wind': s} for s in s_list]
+task_contexts = [{'speed': s, 'wind': 0.} for s in s_list]
 # envs = [Walker2dEnv() for _ in range(len(s_list))]
 # for e, s in zip(envs, s_list):
 # 	e.reward_type = 'bound'
@@ -75,7 +75,8 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	pms.subsample_factor = .1
 	pms.max_kl = 0.01
 	pms.min_std = 0.01
-	pms.nbatch = 4096 * len(s_list)
+	# pms.nbatch = 4096 * len(s_list)
+	pms.batchsize = 4096 * 3
 	pms.env_name = 'walker'
 	pms.max_total_time_step = 1024 * 32
 	config = tf.ConfigProto(allow_soft_placement = True)
