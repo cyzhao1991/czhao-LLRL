@@ -44,7 +44,7 @@ class PpoMtl(Agent):
 
 			self.ratio = tf.exp(logli_new - logli_old)
 			surr_loss1 = -self.ratio * self.advant
-			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange)
+			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange) * self.advant
 			self.surr_loss = tf.reduce_mean(tf.maximum(surr_loss1, surr_loss2))
 
 			self.optimizer = tf.train.AdamOptimizer( learning_rate = self.pms.ppo_lr, epsilon = 1e-5 )
@@ -70,7 +70,8 @@ class PpoMtl(Agent):
 
 			self.ratio = tf.exp(logli_new - logli_old)
 			surr_loss1 = -self.ratio * self.advant
-			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange)
+			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange)* self.advant
+			self.surr_loss = tf.reduce_mean(tf.maximum(surr_loss1, surr_loss2))
 			surr_loss = tf.maximum(surr_loss1, surr_loss2)
 			task_surr_loss = tf.reduce_mean(tf.expand_dims(surr_loss, axis = 1) * self.task_descriptor, axis = 0)
 			# print ( flatten_var(tf.gradients(task_surr_loss[0] )
@@ -108,7 +109,8 @@ class PpoMtl(Agent):
 
 			self.ratio = tf.exp(logli_new - logli_old)
 			surr_loss1 = -self.ratio * self.advant
-			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange)
+			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange)* self.advant
+			self.surr_loss = tf.reduce_mean(tf.maximum(surr_loss1, surr_loss2))
 			surr_loss = tf.maximum(surr_loss1, surr_loss2)
 			task_surr_loss = tf.reduce_mean(tf.expand_dims(surr_loss, axis = 1) * self.task_descriptor, axis = 0)
 			# print ( flatten_var(tf.gradients(task_surr_loss[0] )

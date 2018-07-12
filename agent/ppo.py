@@ -56,10 +56,19 @@ class PPOagent(Agent):
 			# self.total_loss = 
 			# grads = tf.gradients(self.total_loss, self.var_list)
 			# grads = list(zip(grads, self.var_list))
+
+
+			grads = tf.gradients(self.surr_loss, self.actor_var)
+			grads, _grad_norm = tf.clip_by_global_norm(grads, .5)
+			grads = list(zip(grads, self.actor_var))
+			# trainer = tf.train.AdamOptimizer(learning_rate=LR, epsilon=1e-5)
+			# _train = trainer.apply_gradients(grads)
+
+
 			self.optimizer = tf.train.AdamOptimizer(learning_rate = self.pms.ppo_lr, epsilon = 1e-5)
 			# self.train_op = self.optimizer.apply_gradients(grads)
-			self.train_op = self.optimizer.minimize( self.surr_loss, var_list = self.actor_var )
-
+			# self.train_op = self.optimizer.minimize( self.surr_loss, var_list = self.actor_var )
+			self.train_op = self.optimizer.apply_gradients( grads )
 	def get_single_path(self):
 
 		observations = []
@@ -168,36 +177,45 @@ class PPOagent(Agent):
 		# val_source = np.squeeze(self.sess.run(self.vpred, feed_dict = {self.vf_input: obs_source}))
 		episode_rewards = np.array([np.sum(path['rewards']) for path in paths])
 
-		batchsize = n_samples//self.pms.nbatch
+		if not self.pms.nbatch:
+			nbatch = n_samples//self.pms.batchsize
+			batchsize = self.pms.batchsize
+		else:
+			nbatch = self.pms.nbatch
+			batchsize = n_samples//self.pms.nbatch
 
 		inds = np.arange(n_samples)
+		datalogger = []
 		for iteration in range(self.pms.nepochs):
-			datalogger = []
 			np.random.shuffle(inds)
+			start = 0
+			for _ in range(nbatch):
 			# for start in range(0, n_samples, batchsize):
 			# end = start + batchsize
 			# mb_inds = inds[start:end]
-			mb_inds = inds[:self.pms.nbatch]
+				# end = start + batchsize
+				mb_inds = inds[start: start+batchsize]
+				start += batchsize
 
-			obs_n = obs_source[mb_inds]
-			act_n = act_source[mb_inds]
-			adv_n = adv_source[mb_inds]
-			act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[mb_inds]])
-			act_dis_logstd_n = np.array([a_info['logstd'] for a_info in actor_info_source[mb_inds]])
-			# val_n = val_source[mb_inds]
-			# rtn_n = rtn_source[mb_inds]
-			feed_dict = {self.obs: obs_n,
-						 self.advant: adv_n,
-						 self.action: act_n,
-						 self.old_dist_mean: act_dis_mean_n,
-						 self.old_dist_logstd: act_dis_logstd_n
-						 # self.vf_input: obs_n,
-						 # self.oldvpred: val_n,
-						 # self.v: rtn_n
-						}
+				obs_n = obs_source[mb_inds]
+				act_n = act_source[mb_inds]
+				adv_n = adv_source[mb_inds]
+				act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[mb_inds]])
+				act_dis_logstd_n = np.array([a_info['logstd'] for a_info in actor_info_source[mb_inds]])
+				# val_n = val_source[mb_inds]
+				# rtn_n = rtn_source[mb_inds]
+				feed_dict = {self.obs: obs_n,
+							 self.advant: adv_n,
+							 self.action: act_n,
+							 self.old_dist_mean: act_dis_mean_n,
+							 self.old_dist_logstd: act_dis_logstd_n
+							 # self.vf_input: obs_n,
+							 # self.oldvpred: val_n,
+							 # self.v: rtn_n
+							}
 
-			# datalogger.append(self.sess.run([self.surr_loss, self.vf_loss, self.entropy, self.kl, self.clipfrac, self.train_op], feed_dict = feed_dict)[:-1])
-			datalogger.append(self.sess.run([self.surr_loss, self.kl, self.train_op], feed_dict = feed_dict))
+				# datalogger.append(self.sess.run([self.surr_loss, self.vf_loss, self.entropy, self.kl, self.clipfrac, self.train_op], feed_dict = feed_dict)[:-1])
+				datalogger.append(self.sess.run([self.surr_loss, self.kl, self.train_op], feed_dict = feed_dict))
 		stats = dict(
 			surrgate_loss = np.mean([d[0] for d in datalogger], axis = -1),
 			# vf_loss = np.mean([d[1] for d in datalogger], axis = -1),

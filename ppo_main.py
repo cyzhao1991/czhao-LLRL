@@ -24,8 +24,8 @@ gpu_num = 0
 exp_num = 0
 # task_num = kwargs.get('task_num', 0)
 # num_of_paths = kwargs.get('num_of_paths', 10)
-dir_name = '/disk/scratch/chenyang/ppo_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp%i/'%(speed,wind,exp_num)
-# dir_name = 'Data/ppo/stl/%s_exp%i/'%('half_cheetah',exp_num)
+# dir_name = '/disk/scratch/chenyang/ppo_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp%i/'%(speed,wind,exp_num)
+dir_name = 'Data/ppo/stl/%s_exp%i/'%('walker',exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)
@@ -65,7 +65,7 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	pms.env_name = 'walker'
 	pms.max_total_time_step = 1024 * 32
 
-	pms.nbatch = 4096 * 3
+	pms.batchsize = 4096 * 3
 
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
