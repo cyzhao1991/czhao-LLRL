@@ -29,8 +29,8 @@ exp_num = 1
 gravity = GRAVITY
 wind = WIND
 
-dir_name = 'ppo_Data/dm_control/mtl/walker/multiwind/exp%i/'%(exp_num)
-# dir_name = '/disk/scratch/chenyang/Data/dm_control/mtl/walker/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
+# dir_name = 'ppo_Data/dm_control/mtl/walker/multiwind/exp%i/'%(exp_num)
+dir_name = '/disk/scratch/chenyang/new_ppo_Data/dm_control/vanilla_mtl/walker/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)

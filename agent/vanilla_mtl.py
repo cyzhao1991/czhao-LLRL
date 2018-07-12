@@ -46,10 +46,14 @@ class PpoMtl(Agent):
 			surr_loss1 = -self.ratio * self.advant
 			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange) * self.advant
 			self.surr_loss = tf.reduce_mean(tf.maximum(surr_loss1, surr_loss2))
+			self.kl = tf.reduce_mean( kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd) )
 
 			self.optimizer = tf.train.AdamOptimizer( learning_rate = self.pms.ppo_lr, epsilon = 1e-5 )
-			self.train_op = self.optimizer.minimize(  self.surr_loss, var_list = self.var_list )
-			self.kl = tf.reduce_mean( kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd) )
+			# self.train_op = self.optimizer.minimize(  self.surr_loss, var_list = self.var_list )
+			grads = tf.gradients(self.surr_loss, self.var_list)
+			grads, _grads_norm = tf.clip_by_global_norm(grads, .5)
+			grads = list( zip(grads, self.var_list) )
+			self.train_op = self.optimizer.apply_gradients( grads )
 
 	def init_align_vars(self):
 
@@ -84,8 +88,13 @@ class PpoMtl(Agent):
 			# self.gradients = [flatten_var(tf.gradients(self.surr_loss, var_list = self.var_list)) for ]
 
 			self.optimizer = tf.train.AdamOptimizer( learning_rate = self.pms.ppo_lr, epsilon = 1e-5 )
-			self.train_op = self.optimizer.minimize(  self.surr_loss + 1. * self.alignment_penalty, var_list = self.var_list )
+			# self.train_op = self.optimizer.minimize(  self.surr_loss + 1. * self.alignment_penalty, var_list = self.var_list )
 			self.kl = tf.reduce_mean( kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd) )
+
+			grads = tf.gradients(self.surr_loss + 1. * self.alignment_penalty,self. var_list)
+			grads, _grads_norm = tf.clip_by_global_norm(grads, .5)
+			grads = list( zip(grads, self.var_list) )
+			self.train_op = self.optimizer.apply_gradients( grads )
 
 	def init_mutual_vars(self):
 
@@ -123,8 +132,13 @@ class PpoMtl(Agent):
 			# self.gradients = [flatten_var(tf.gradients(self.surr_loss, var_list = self.var_list)) for ]
 
 			self.optimizer = tf.train.AdamOptimizer( learning_rate = self.pms.ppo_lr, epsilon = 1e-5 )
-			self.train_op = self.optimizer.minimize(  self.surr_loss + 1. * self.kl_penalty, var_list = self.var_list )
+			# self.train_op = self.optimizer.minimize(  self.surr_loss + 1. * self.kl_penalty, var_list = self.var_list )
 			self.kl = tf.reduce_mean( kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd) )
+
+			grads = tf.gradients(self.surr_loss + 1. * self.kl_penalty, self.var_list)
+			grads, _grads_norm = tf.clip_by_global_norm(grads, .5)
+			grads = list( zip(grads, self.var_list) )
+			self.train_op = self.optimizer.apply_gradients( grads )
 
 	def get_single_path(self, task_index):
 		observations = []
@@ -278,36 +292,43 @@ class PpoMtl(Agent):
 
 		batchsize = n_samples//self.pms.nbatch
 
+		if not self.pms.nbatch:
+			nbatch = n_samples//self.pms.batchsize
+			batchsize = self.pms.batchsize
+		else:
+			nbatch = self.pms.nbatch
+			batchsize = n_samples//self.pms.nbatch
+
 		inds = np.arange(n_samples)
+		datalogger = []
 		for iteration in range(self.pms.nepochs):
-			datalogger = []
+			# datalogger = []
 			np.random.shuffle(inds)
-			# for start in range(0, n_samples, batchsize):
-			# end = start + batchsize
-			# mb_inds = inds[start:end]
-			mb_inds = inds[:self.pms.nbatch]
+			start = 0
+			for _ in range(nbatch):
+				mb_inds = inds[start:start + batchsize]
+				start += batchsize
+				obs_n = obs_source[mb_inds]
+				act_n = act_source[mb_inds]
+				adv_n = adv_source[mb_inds]
+				des_n = des_source[mb_inds]
+				act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[mb_inds]])
+				act_dis_logstd_n = np.array([a_info['logstd'] for a_info in actor_info_source[mb_inds]])
+				# val_n = val_source[mb_inds]
+				# rtn_n = rtn_source[mb_inds]
+				feed_dict = {self.obs: obs_n,
+							 self.advant: adv_n,
+							 self.action: act_n,
+							 self.old_dist_mean: act_dis_mean_n,
+							 self.old_dist_logstd: act_dis_logstd_n,
+							 self.task_descriptor: des_n
+							 # self.vf_input: obs_n,
+							 # self.oldvpred: val_n,
+							 # self.v: rtn_n
+							}
 
-			obs_n = obs_source[mb_inds]
-			act_n = act_source[mb_inds]
-			adv_n = adv_source[mb_inds]
-			des_n = des_source[mb_inds]
-			act_dis_mean_n = np.array([a_info['mean'] for a_info in actor_info_source[mb_inds]])
-			act_dis_logstd_n = np.array([a_info['logstd'] for a_info in actor_info_source[mb_inds]])
-			# val_n = val_source[mb_inds]
-			# rtn_n = rtn_source[mb_inds]
-			feed_dict = {self.obs: obs_n,
-						 self.advant: adv_n,
-						 self.action: act_n,
-						 self.old_dist_mean: act_dis_mean_n,
-						 self.old_dist_logstd: act_dis_logstd_n,
-						 self.task_descriptor: des_n
-						 # self.vf_input: obs_n,
-						 # self.oldvpred: val_n,
-						 # self.v: rtn_n
-						}
-
-			# datalogger.append(self.sess.run([self.surr_loss, self.vf_loss, self.entropy, self.kl, self.clipfrac, self.train_op], feed_dict = feed_dict)[:-1])
-			datalogger.append(self.sess.run([self.surr_loss, self.kl, self.train_op], feed_dict = feed_dict))
+				# datalogger.append(self.sess.run([self.surr_loss, self.vf_loss, self.entropy, self.kl, self.clipfrac, self.train_op], feed_dict = feed_dict)[:-1])
+				datalogger.append(self.sess.run([self.surr_loss, self.kl, self.train_op], feed_dict = feed_dict))
 		stats = dict(
 			surrgate_loss = np.mean([d[0] for d in datalogger], axis = -1),
 			# vf_loss = np.mean([d[1] for d in datalogger], axis = -1),
