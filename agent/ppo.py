@@ -140,6 +140,8 @@ class PPOagent(Agent):
 				deltas = path['rewards'] + self.pms.discount * b[1:] - b[:-1]
 				path['advantages'] = discount(deltas, self.pms.discount * self.pms.gae_lambda)
 
+		self.baseline.fit(observations, returns, iter_num = 5)
+
 		observations = np.concatenate([path['observations'] for path in paths])
 		actions = np.concatenate([path['actions'] for path in paths])
 		rewards = np.concatenate([path['rewards'] for path in paths])
@@ -161,7 +163,6 @@ class PPOagent(Agent):
 			total_time_step = total_time_step
 		)
 
-		self.baseline.fit(observations, returns, iter_num = 5)
 
 		return sample_data
 

@@ -8,3 +8,5 @@ log.txt
 note.md
 new_Data/
 ppo_Data/
+new_ppo_Data/
+.DS_Store

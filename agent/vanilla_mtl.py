@@ -292,7 +292,7 @@ class PpoMtl(Agent):
 
 		batchsize = n_samples//self.pms.nbatch
 
-		if not self.pms.nbatch:
+		if self.pms.nbatch == 0:
 			nbatch = n_samples//self.pms.batchsize
 			batchsize = self.pms.batchsize
 		else:

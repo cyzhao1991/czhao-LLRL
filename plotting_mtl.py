@@ -4,7 +4,7 @@ import shelve, pdb
 import matplotlib.pyplot as plt
 from os import listdir
 
-filename = "ppo_Data/dm_control/mtl/walker/multispeed/exp0/shelve_result"
+filename = "new_ppo_Data/dm_control/vanilla_mtl/walker/multispeed/exp2/shelve_result"
 tmp_s = shelve.open(filename)
 result = tmp_s['saving_result']
 # for _,v in result.items():
