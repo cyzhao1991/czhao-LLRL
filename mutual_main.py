@@ -26,8 +26,8 @@ exp_num = 0
 # task_num = kwargs.get('task_num', 0)
 # num_of_paths = kwargs.get('num_of_paths', 10)
 # dir_name = '/disk/scratch/chenyang/ppo_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp0/'%(speed,wind)
-dir_name = '/disk/scratch/chenyang/new_ppo_Data/dm_control/mutual_stl/walker_s%1.1f/w%1.1fg0.0/exp%i'%(speed, wind, exp_num)
-# dir_name = 'Data/ppo/stl/%s_exp%i/'%('half_cheetah',exp_num)
+# dir_name = '/disk/scratch/chenyang/new_ppo_Data/dm_control/mutual_stl/walker_s%1.1f/w%1.1fg0.0/exp%i/'%(speed, wind, exp_num)
+dir_name = 'Data/ppo/stl/%s_exp%i/'%('half_cheetah',exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)
@@ -101,32 +101,32 @@ learn_agent.saver = saver
 '''
 	Learn Model
 '''
-with tf.device('/gpu:%i'%(gpu_num)):
-	sess.run(tf.global_variables_initializer())
-	[sess.run(tf.assign(v, np.array([1.]).astype(np.float32) ) ) for v in path_vector]
-	saving_result = learn_agent.learn()
+# with tf.device('/gpu:%i'%(gpu_num)):
+# 	sess.run(tf.global_variables_initializer())
+# 	[sess.run(tf.assign(v, np.array([1.]).astype(np.float32) ) ) for v in path_vector]
+# 	saving_result = learn_agent.learn()
 
 
-sess.close()
+# sess.close()
 
-filename = dir_name + 'shelve_result'
-my_shelf = shelve.open(filename, 'n')
-my_shelf['saving_result'] = saving_result
-# my_shelf['goal'] = goal
-my_shelf.close()
+# filename = dir_name + 'shelve_result'
+# my_shelf = shelve.open(filename, 'n')
+# my_shelf['saving_result'] = saving_result
+# # my_shelf['goal'] = goal
+# my_shelf.close()
 
 
 '''
 	Restore Model
 '''
-# exp_num = 0
-# dir_name = 'ppo_Data/dm_control/mtl/walker/multispeed/exp%i/'%(exp_num)
-# filename = dir_name+'walker-iter500.ckpt'
+exp_num = 1
+dir_name = 'new_ppo_Data/dm_control/mutual_stl/walker_s2.0/w0.0g0.0/exp%i'%(exp_num)
+filename = dir_name+'walker-iter500.ckpt'
 # if 'wind' in dir_name:
 # 	learn_agent.env_contexts = [{'speed': 2., 'wind':s} for s in s_list]
 # elif 'speed' in dir_name:
 # 	learn_agent.env_contexts = [{'speed': s, 'wind':0.} for s in s_list]
 
-# saver.restore(sess, filename)
-# pms.train_flag = False
-# pms.render = True
+saver.restore(sess, filename)
+pms.train_flag = False
+pms.render = True

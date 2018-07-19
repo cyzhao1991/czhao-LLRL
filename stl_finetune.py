@@ -25,7 +25,7 @@ exp_num = 0
 # task_num = kwargs.get('task_num', 0)
 # num_of_paths = kwargs.get('num_of_paths', 10)
 # dir_name = '/disk/scratch/chenyang/ppo_Data/dm_control/stl/walker_s%1.1f/w%1.1fg0.0/exp%i/'%(speed,wind,exp_num)
-dir_name = 'new_ppo_Data/dm_control/stl/walker_s%1.1f/w%1.1f_g0.0/test_exp%i/'%(speed, wind, exp_num)
+dir_name = 'Data/ppo/stl/%s_exp%i/'%('walker',exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)
@@ -72,14 +72,12 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	config.gpu_options.allow_growth = True
 	sess = tf.Session(config = config)
 
-	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope+'_actor', if_bias = [True], \
-		activation = ['tanh', 'tanh', 'tanh', 'None'], init = [.1,.1,.1,.01])
+	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [True], activation = ['tanh', 'tanh', 'tanh', 'None'], init = [.1,.1,.1, .01])
 	actor = GaussianActor(actor_net, sess, pms)
 
+	baselinet_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [True], activation = ['relu','relu', 'relu','None'], init = [.1 ,.1,.1, .1])
 	# baseline = BaselineZeros(sess, pms)
-	baseline_net = Fcnn(sess, pms.obs_shape, 1, [100, 50,25], name = pms.name_scope+'_value', if_bias = [True], \
-		activation = ['relu', 'relu', 'relu', 'None'], init = [.1,.1,.1,.1])
-	baseline = BaselineFcnn(baseline_net, sess, pms)
+	baseline = BaselineFcnn(baselinet_net, sess, pms)
 
 	learn_agent = PPOagent(env, actor, baseline, sess, pms, [None])
 	learn_agent.init_vars()

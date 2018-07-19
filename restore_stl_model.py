@@ -161,7 +161,7 @@ dir_name = 'Data/dm_control/stl/walker_walk/w0.0g-5.0/exp0/'
 # max_action = act_spec.maximum
 # obs_size = np.sum(np.sum([s.shape for s in obs_spec.values()])) + 1
 
-SPEED = 4.
+SPEED = 2.
 GRAVITY = 0.
 WIND = 0.
 exp_num = 2
@@ -209,10 +209,10 @@ with tf.device('/gpu:%i'%(0)):
 	config.gpu_options.allow_growth = True
 	sess = tf.Session(config = config)
 
-	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [True], activation = ['tanh', 'tanh','tanh', 'None'], init = [1., 1. ,1.,.01])
+	actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], name = pms.name_scope, if_bias = [False], activation = ['tanh', 'tanh','tanh', 'None'], init = [1., 1. ,1.,.01])
 	actor = GaussianActor(actor_net, sess, pms)
 
-	baselinet_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [True], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
+	baselinet_net = Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline', if_bias = [False], activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1])
 	# baseline = BaselineZeros(sess, pms)
 	baseline = BaselineFcnn(baselinet_net, sess, pms)
 
@@ -225,7 +225,7 @@ sess.run(tf.global_variables_initializer())
 # learn_agent.get_single_path()
 # model_file = '../Data/arv/trpo_stl_Jan28/task_1_exp3/cartpole-iter190.ckpt'
 # model_file = 'Data/checkpoint/stl/exp0_nogoal/cartpole-iter990.ckpt'
-learn_agent.pms.render = True
+learn_agent.pms.render = False
 learn_agent.pms.train_flag = False
 
 wind_list = [-4, -2, -1, 0, 1, 2, 4]
@@ -237,8 +237,9 @@ gravity = 0.
 exp_num = 0
 # model_file = 'Data/dm_control/finetune/walker_s%1.1f/w%1.1fg%1.1f/exp3/walker-iter990.ckpt'%(speed, wind, gravity)
 # model_file = 'Data/dm_control/stl(con)/walker_s%1.1f/w%1.1fg%1.1f/exp%i/walker-iter500.ckpt'%(speed, wind, gravity, exp_num)
-model_file = 'new_Data/dm_control/stl/walker_s1.0/w0.0g0.0/exp0/walker-iter1000.ckpt'
+model_file = 'Data/dm_control/stl/walker_s2.0/w0.0g0.0/exp0/walker-iter990.ckpt'
 learn_agent.saver.restore(sess, model_file)
+env.target_value = 2.
 
 '''
 for i, wind in enumerate(wind_list):

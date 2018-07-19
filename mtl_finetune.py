@@ -22,7 +22,7 @@ tf.reset_default_graph()
 exp_num = 0
 WIND = 0.
 SPEED = -3.
-dir_name = 'Data/dm_control/finetune_ver2/mtl_walker_s%1.1f/w%1.1fg0.0/test_exp0/'%(SPEED,WIND)
+dir_name = 'new_ppo_Data/dm_control/finetune/walker_s%1.1f/w%1.1fg0.0/test_exp0/'%(SPEED,WIND)
 # dir_name = '/disk/scratch/mtl_prog/walker_s%1.1f/w%1.1fg0.0/exp%i'%(SPEED, WIND, exp_num)
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)

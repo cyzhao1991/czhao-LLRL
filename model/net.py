@@ -11,6 +11,9 @@ class Net(object):
 		self.layer_dim = layer_dim
 		self.name = name
 
+		self.num_of_hidden_layer = len(self.layer_dim)
+		self.num_of_layer = self.num_of_hidden_layer + 1
+
 		self.all_layer_dim = np.concatenate([[self.input_dim], layer_dim, [self.output_dim]], axis = 0).astype(int)
 		self.if_bias = kwargs.get('if_bias', ([True] * len(layer_dim))+[False] )
 		self.activation_fns = kwargs.get( 'activation', (['tanh']*len(layer_dim))+['None'])
@@ -43,26 +46,35 @@ class Fcnn(Net):
 
 	def build(self, input_tf, name):
 		
+		net = [None] * (self.num_of_layer + 1)
+		net[0] = self.input
+		self.weights = [None] * self.num_of_layer
+		self.bias = [None] * self.num_of_layer
+
 		with tf.name_scope(name):
-			net = input_tf
-			weights = []
-			if np.any(self.if_bias):
-				bias = []
 
-			for i, (dim_1, dim_2) in enumerate( zip(self.all_layer_dim[:-1], self.all_layer_dim[1:]) ):
-				if self.if_bias[i]:
-					init_v = self.initialize_value[i] if self.initialize_value is not None else .1
-					weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = init_v), name = 'theta_%i'%i))
-					bias.append( tf.Variable (tf.truncated_normal([dim_2], stddev = init_v), name = 'bias_%i'%i))
-					net = self.activation_fns_call[i]( tf.matmul(net, weights[i]) + bias[-1] )
+			for i in range(self.num_of_layer):
+
+				dim_1, dim_2 = self.all_layer_dim[i:i+2]
+				init_v = self.initialize_value[i] if self.initialize_value is not None else .1
+				self.weights[i] = tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = init_v), name = 'theta_%i'%i )
+				self.bias[i] = tf.Variable( tf.truncated_normal([dim_2], stddev = init_v), name = 'bias_%i'%i) if self.if_bias[i] else 0
+
+				net[i+1] = self.activation_fns_call[i]( net[i] @ self.weights[i] + self.bias[i] )
+			# for i, (dim_1, dim_2) in enumerate( zip(self.all_layer_dim[:-1], self.all_layer_dim[1:]) ):
+				# if self.if_bias[i]:
+				# 	init_v = self.initialize_value[i] if self.initialize_value is not None else .1
+				# 	weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = init_v), name = 'theta_%i'%i))
+				# 	bias.append( tf.Variable (tf.truncated_normal([dim_2], stddev = init_v), name = 'bias_%i'%i))
+				# 	net = self.activation_fns_call[i]( tf.matmul(net, weights[i]) + bias[-1] )
 					
-				else:
-					# print(dim_1,dim_2)
-					init_v = self.initialize_value[i] if self.initialize_value is not None else .1
-					weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = init_v), name = 'theta_%i'%i))
-					net = self.activation_fns_call[i]( tf.matmul(net, weights[i]) )
+				# else:
+				# 	# print(dim_1,dim_2)
+				# 	init_v = self.initialize_value[i] if self.initialize_value is not None else .1
+				# 	weights.append( tf.Variable( tf.truncated_normal([dim_1, dim_2], stddev = init_v), name = 'theta_%i'%i))
+				# 	net = self.activation_fns_call[i]( tf.matmul(net, weights[i]) )
 
-			return net
+			return net[-1]
 
 
 class Modular_Fcnn(Net):

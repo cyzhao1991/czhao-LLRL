@@ -31,25 +31,28 @@ class BaselineFcnn(Baseline):
 	def __init__(self, net, sess, pms):
 		super(BaselineFcnn, self).__init__(sess, pms)
 		self.net = net
-
+		self.name = self.net.name
 		self.input = self.net.input
 		self.output = self.net.output
-		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.net.name)]
+		self.var_list = [v for v in tf.trainable_variables() if v.name.startswith(self.name)]
 		self.build_net()
 
 	def build_net(self):
-		with tf.name_scope(self.net.name):
-			self.optimizer = tf.train.AdamOptimizer(name = 'adam', learning_rate = 0.001)
+		with tf.name_scope(self.name):
+			# print([v.name for v in self.var_list])
 			self.value = tf.placeholder(tf.float32, [None], name = 'y')
 			self.mse = tf.losses.mean_squared_error(self.value, tf.squeeze(self.output))
 			self.l2 = tf.add_n([tf.nn.l2_loss(t) for t in self.var_list])
 			self.loss = self.mse + 1e-3 * self.l2
+			self.optimizer = tf.train.AdamOptimizer(name = 'adam', learning_rate = 0.001)
+
 			self.grad = self.optimizer.compute_gradients(self.loss, self.var_list)
 
 			self.gradients = [v[0] for v in self.grad]
 			self.gradients_ph = [tf.placeholder(tf.float32, v.shape) for v in self.var_list]
 			# self.delta_g = tf.add_n([tf.nn.l2_loss(t) for t, _ in self.grad])
 			# self.train = self.optimizer.apply_gradients( [(g,v) for g,v in zip(self.gradients_ph, self.var_list)] )
+
 			self.train = self.optimizer.minimize(self.loss, var_list= self.var_list)
 
 	def fit(self, obs, rns, iter_num = 5):

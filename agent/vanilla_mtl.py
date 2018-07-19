@@ -177,7 +177,7 @@ class PpoMtl(Agent):
 			env.render()
 
 		for _ in range(self.pms.max_time_step):
-			action, actor_info = self.actor.get_action(state, task_index)
+			action, actor_info = self.actor.get_action(state + env.np_random.normal(0., .5, size = state.shape), task_index)
 			action = np.array([action]) if len(np.shape(action)) == 0 else np.array(action)
 			next_state, reward, terminal, _ = env.step(self.pms.max_action * action)
 

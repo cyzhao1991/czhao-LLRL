@@ -4,20 +4,25 @@ import shelve, pdb
 import matplotlib.pyplot as plt
 from os import listdir
 
-filename = "new_ppo_Data/dm_control/vanilla_mtl/walker/multispeed/exp2/shelve_result"
-tmp_s = shelve.open(filename)
-result = tmp_s['saving_result']
-# for _,v in result.items():
-# 	v = np.array(v)
+# filename = "new_ppo_Data/dm_control/vanilla_mtl/walker/multispeed/exp2/shelve_result"
 
-all_return = np.array(result['average_return'])
 plt.figure(1)
-# [plt.plot(all_return[:,i]) for i in range( all_return.shape[-1] )]
-for y in np.array(all_return).T:
-	y = np.array([np.mean(y[np.max([0, i-10]):i+1]) for i in range(500)])
-	plt.plot(y[:], linewidth = 1.5)
-plt.legend('123')
-plt.grid()
+for i in range(4):
+	filename = 'new_ppo_Data/dm_control/mutual_stl/walker_s2.0/w0.0g0.0/exp%ishelve_result'%i
+	# filename = 'new_ppo_Data/dm_control/vanilla_mtl/walker/multispeed/exp%i/shelve_result'%i
+	tmp_s = shelve.open(filename)
+	result = tmp_s['saving_result']
+	# for _,v in result.items():
+	# 	v = np.array(v)
+
+	all_return = np.array(result['average_return'])
+	plt.subplot(2,2,i+1)
+	# [plt.plot(all_return[:,i]) for i in range( all_return.shape[-1] )]
+	for y in np.array(all_return).T:
+		y = np.array([np.mean(y[np.max([0, i-10]):i+1]) for i in range(500)])
+		plt.plot(y[:], linewidth = 1.5)
+	plt.legend('123')
+	plt.grid()
 plt.show()
 
 
