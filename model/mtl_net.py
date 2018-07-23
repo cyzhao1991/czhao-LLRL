@@ -153,19 +153,23 @@ class MtlFcnnNet(Net):
 
 class MtlFcnnNet2(Net):
 
-	def __init__(self, sess, input_dim, output_dim, layer_dim, module_num, num_of_tasks, name = None, task_module_num = 1,**kwargs):
+	def __init__(self, sess, input_dim, output_dim, layer_dim, module_num, num_of_tasks, name = None, task_module = True,**kwargs):
 		super(MtlFcnnNet2, self).__init__(sess, input_dim, output_dim, layer_dim, name, **kwargs)
 		self.module_num = module_num
-		self.task_module_num = task_module_num
+		self.task_module = task_module
 		self.num_of_hidden_layer = len(self.layer_dim)
 		self.num_of_layer = self.num_of_hidden_layer + 1
 		self.num_of_tasks = num_of_tasks
 
+		if not isinstance(self.task_module, list):
+			self.task_module = [self.task_module] * self.num_of_layer
+
 		if not np.all(self.module_num == 0):
 			self.def_shared_knowledge(self.name)
-		if not self.task_module_num == 0: 
+		if not np.all(self.task_module == 0): 
 			self.def_task_knowledge(self.name, self.num_of_tasks)
 		self.def_task_path(self.name, self.num_of_tasks)
+
 
 		with tf.name_scope(self.name):
 			self.input = kwargs.get('input_tf', tf.placeholder(tf.float32, [None, self.input_dim], name = 'input'))
@@ -182,6 +186,8 @@ class MtlFcnnNet2(Net):
 
 		with tf.name_scope(name):
 			for i in range(self.num_of_layer):
+				if self.module_num[i] == 0: continue
+
 				dim_1, dim_2 = self.all_layer_dim[i:i+2]
 				init_v = self.initialize_value[i] if self.initialize_value is not None else .1
 
@@ -196,6 +202,8 @@ class MtlFcnnNet2(Net):
 		self.task_bias = [None] * self.num_of_layer
 		with tf.name_scope(name):
 			for i in range(self.num_of_layer):
+				if not self.task_module[i]: continue
+
 				dim_1, dim_2 = self.all_layer_dim[i:i+2]
 				init_v = self.initialize_value[i] if self.initialize_value is not None else .1
 
@@ -209,7 +217,7 @@ class MtlFcnnNet2(Net):
 		self.task_path = [None] * self.num_of_layer
 		with tf.name_scope(name):
 			for i in range(self.num_of_layer):
-				self.task_path[i] = [tf.Variable( tf.truncated_normal([self.module_num[i]+self.task_module_num], stddev = 1.), \
+				self.task_path[i] = [tf.Variable( tf.truncated_normal([self.module_num[i]+ int(self.task_module[i]) ], stddev = 1.), \
 					name = 'task_path_h%i_t%i'%(i,j)) for j in range(num_of_tasks)]
 
 
@@ -222,7 +230,7 @@ class MtlFcnnNet2(Net):
 				net[j][0] = self.input
 				for i in range(self.num_of_layer):
 					tmp_in = net[j][i]
-					if not self.task_module_num == 0 and not self.module_num[i] == 0:
+					if self.task_module[i] and not self.module_num[i] == 0:
 						shared_h = [self.activation_fns_call[i](tmp_in @ w + b) for w, b in zip(self.shared_weights[i], self.shared_bias[i])]
 					# if not self.task_module_num == 0:
 						task_h = self.activation_fns_call[i](tmp_in @ self.task_weights[i][j] + self.task_bias[i][j])
@@ -230,7 +238,7 @@ class MtlFcnnNet2(Net):
 					elif self.module_num[i] == 0:
 						task_h = self.activation_fns_call[i](tmp_in @ self.task_weights[i][j] + self.task_bias[i][j])
 						tmp_var = tf.stack([task_h], axis = 2)
-					elif self.task_module_num == 0:
+					elif not self.task_module[i]:
 						shared_h = [self.activation_fns_call[i](tmp_in @ w + b) for w, b in zip(self.shared_weights[i], self.shared_bias[i])]
 						tmp_var = tf.stack(shared_h, axis = 2)
 					net[j][i+1] = tf.reduce_sum( tmp_var * tf.reshape(self.task_path[i][j], [1,1,-1]), axis = -1)

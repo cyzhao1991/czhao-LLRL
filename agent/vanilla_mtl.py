@@ -140,6 +140,56 @@ class PpoMtl(Agent):
 			grads = list( zip(grads, self.var_list) )
 			self.train_op = self.optimizer.apply_gradients( grads )
 
+	def init_l1_vars(self):
+
+		try:
+			self.task_path_vector
+		except:
+			self.task_path_vector = [v for v in self.var_list if 'path' in v.name]
+
+		with tf.name_scope(self.pms.name_scope):
+			self.obs = self.actor.input_ph
+			self.advant = tf.placeholder(tf.float32, [None], name = 'advantages')
+			self.action = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'action')
+			self.old_dist_mean = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_mean')
+			self.old_dist_logstd = tf.placeholder(tf.float32, [None, self.pms.action_shape], name = 'old_dist_logstd')
+			self.task_descriptor = tf.placeholder(tf.float32, [None, self.num_of_tasks], name = 'task_descriptor')
+			self.dist_mean = self.actor.output_net
+			self.new_dist_mean = tf.reduce_sum( tf.stack( self.dist_mean, axis = 1) * tf.expand_dims( self.task_descriptor, axis = 2), axis = 1)
+			self.com_dist_mean = tf.reduce_sum( tf.stack( self.dist_mean, axis = 1) * tf.expand_dims( 1. - self.task_descriptor, axis = 2), axis = 1)
+
+			self.dist_logstd = [tf.tile(lsd, [ tf.shape(self.obs)[0], 1 ] ) for lsd in self.actor.action_logstd]
+			self.new_dist_logstd = tf.reduce_sum( tf.stack( self.dist_logstd, axis = 1) * tf.expand_dims(self.task_descriptor, axis = 2), axis = 1)
+			self.com_dist_logstd = tf.reduce_sum( tf.stack( self.dist_logstd, axis = 1) * tf.expand_dims( 1. - self.task_descriptor, axis = 2), axis = 1)
+
+			logli_new = log_likelihood(self.action, self.new_dist_mean, self.new_dist_logstd)
+			logli_old = log_likelihood(self.action, self.old_dist_mean, self.old_dist_logstd)
+
+			self.ratio = tf.exp(logli_new - logli_old)
+			surr_loss1 = -self.ratio * self.advant
+			surr_loss2 = -tf.clip_by_value( self.ratio, 1.-self.pms.cliprange, 1.+self.pms.cliprange)* self.advant
+			self.surr_loss = tf.reduce_mean(tf.maximum(surr_loss1, surr_loss2))
+			surr_loss = tf.maximum(surr_loss1, surr_loss2)
+			task_surr_loss = tf.reduce_mean(tf.expand_dims(surr_loss, axis = 1) * self.task_descriptor, axis = 0)
+			# print ( flatten_var(tf.gradients(task_surr_loss[0] )
+			tmp_gradients = [tf.gradients( task_surr_loss[i], self.shared_var_list) for i in range(self.num_of_tasks) ]
+			# task_gradients = [flatten_var(g) for g in tmp_gradients]
+			# task_gradients = [flatten_var( tf.gradients(task_surr_loss[i], self.shared_var_list) ) for i in range(self.num_of_tasks)]
+			# self.alignment_penalty = tf.add_n( [ tf.reduce_sum( task_gradients[0] * task_gradients[i+1] ) for i in range(self.num_of_tasks-1)] )
+			self.surr_loss = tf.reduce_mean(surr_loss)
+			self.l1_sparsity_norm = tf.add_n([ tf.reduce_sum(tf.abs(v)) for v in self.task_path_vector])
+			# self.kl_penalty = tf.reduce_mean(kl_sym( self.com_dist_mean, self.com_dist_logstd, self.new_dist_mean, self.new_dist_logstd))
+			# self.gradients = [flatten_var(tf.gradients(self.surr_loss, var_list = self.var_list)) for ]
+
+			self.optimizer = tf.train.AdamOptimizer( learning_rate = self.pms.ppo_lr, epsilon = 1e-5 )
+			# self.train_op = self.optimizer.minimize(  self.surr_loss + 1. * self.kl_penalty, var_list = self.var_list )
+			self.kl = tf.reduce_mean( kl_sym(self.old_dist_mean, self.old_dist_logstd, self.new_dist_mean, self.new_dist_logstd) )
+
+			grads = tf.gradients(self.surr_loss + 1. * self.l1_sparsity_norm, self.var_list)
+			grads, _grads_norm = tf.clip_by_global_norm(grads, .5)
+			grads = list( zip(grads, self.var_list) )
+			self.train_op = self.optimizer.apply_gradients( grads )
+
 	def get_single_path(self, task_index):
 		observations = []
 		actions = []
@@ -290,7 +340,7 @@ class PpoMtl(Agent):
 		des_source = sample_data['descriptor']
 		# val_source = np.squeeze(self.sess.run(self.vpred, feed_dict = {self.vf_input: obs_source}))
 
-		batchsize = n_samples//self.pms.nbatch
+		# batchsize = n_samples//self.pms.nbatch
 
 		if self.pms.nbatch == 0:
 			nbatch = n_samples//self.pms.batchsize

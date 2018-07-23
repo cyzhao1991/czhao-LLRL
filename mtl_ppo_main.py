@@ -8,7 +8,7 @@ from utils.paras import Paras_base
 from actor.mtl_actor import MtlGaussianActor
 from agent.vanilla_mtl import PpoMtl
 from baseline.baseline import *
-from model.mtl_net import MtlFcnnNet
+from model.mtl_net import MtlFcnnNet2
 from model.net import Fcnn
 from gym.envs.mujoco.walker2d import Walker2dEnv
 # from agent.mimic_agent import *
@@ -26,11 +26,12 @@ WIND = 0.
 gpu_num = 0
 exp_num = 0
 # speed = SPEED #if speed is None else speed
+
 gravity = GRAVITY
 wind = WIND
 
-# dir_name = 'ppo_Data/dm_control/mtl/walker/multiwind/exp%i/'%(exp_num)
-dir_name = '/disk/scratch/chenyang/new_ppo_Data/dm_control/vanilla_mtl/walker/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
+dir_name = 'new_ppo_Data/dm_control/mtl/walker/test_l1/exp%i/'%(exp_num)
+# dir_name = '/disk/scratch/chenyang/new_ppo_Data/dm_control/vanilla_mtl/walker/w%1.1fg%1.1f/exp%i/'%(speed, wind, gravity, exp_num)
 # dir_name = '/disk/scratch/chenyang/Data/trpo_stl/task_%i_exp%i/'%(task_num, exp_num)
 if not os.path.isdir(dir_name):
 	os.makedirs(dir_name)
@@ -44,10 +45,11 @@ act_size = env.action_space.shape[0]
 max_action = env.action_space.high
 obs_size = env.observation_space.shape[0]
 
-mod_num = 1
+mod_num = 10
 
-s_list = [-2., 0., 2.]
-task_contexts = [{'speed': s, 'wind': 0.} for s in s_list]
+sw_list = [(-2., 0.), (0., 0.), (2., 0.), (2., -2.), (2., 2.)]
+task_contexts = [{'speed': s, 'wind': w} for s,w in sw_list]
+# task_contexts = []
 # envs = [Walker2dEnv() for _ in range(len(s_list))]
 # for e, s in zip(envs, s_list):
 # 	e.reward_type = 'bound'
@@ -76,8 +78,9 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	pms.max_kl = 0.01
 	pms.min_std = 0.01
 	# pms.nbatch = 4096 * len(s_list)
-	pms.batchsize = 4096 * 3
+	pms.batchsize = 4096
 	pms.env_name = 'walker'
+	pms.name_scope = 'ppo'
 	pms.max_total_time_step = 1024 * 32
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
@@ -85,21 +88,21 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	sess = tf.Session(config = config)
 	# pms.render = True
 	# actor_net = Fcnn(sess, pms.obs_shape, pms.action_shape, [100,50,25], name = pms.name_scope, if_bias = [True], activation = ['tanh', 'tanh', 'tanh','None'], init = [1. ,1., 1. ,.01])
-	actor_net = MtlFcnnNet(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], [mod_num,mod_num,mod_num,mod_num], len(s_list),name = pms.name_scope, \
-		if_bias = [True], activation = ['tanh', 'tanh','tanh', 'None'], init = [.1, .1 ,.1,.01])
+	actor_net = MtlFcnnNet2(sess, pms.obs_shape, pms.action_shape, [100, 50, 25], [mod_num,mod_num,mod_num,0], len(sw_list),name = pms.name_scope, \
+		if_bias = [True], activation = ['tanh', 'tanh','tanh', 'None'], init = [.1, .1 ,.1,.01], task_module = [False, False, False, True])
 	actor = MtlGaussianActor(actor_net, sess, pms)
 
 	baseline_nets = [Fcnn(sess, pms.obs_shape, 1, [100, 50, 25], name = 'baseline_task%i'%i, if_bias = [True], \
-		activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1]) for i in range(len(s_list))]
+		activation = ['relu', 'relu','relu','None'], init = [.1, .1, .1, .1]) for i in range(len(sw_list))]
 	baseline = [BaselineFcnn(b, sess, pms) for b in baseline_nets]
 
-	learn_agent = PpoMtl(env, actor, baseline, sess, pms, saver = [None], env_contexts =task_contexts)
+	learn_agent = PpoMtl(env, actor, baseline, sess, pms, saver = [None], env_contexts = task_contexts)
 	path_vector = [v for v in tf.trainable_variables() if 'path' in v.name]
 
-	learn_agent.task_var_lists = [[v for v in tf.trainable_variables() if ('t%i'%i in v.name and 'path' not in v.name)] for i in range(3)]
+	learn_agent.task_var_lists = [[v for v in tf.trainable_variables() if ('t%i'%i in v.name and 'path_h3' not in v.name)] for i in range( len(sw_list) )]
 	learn_agent.var_list = sum(learn_agent.task_var_lists,learn_agent.shared_var_list)
 	# learn_agent.init_vars()
-	learn_agent.init_vars()
+	learn_agent.init_l1_vars()
 
 saver = tf.train.Saver(max_to_keep = 101)
 learn_agent.saver = saver
@@ -110,8 +113,10 @@ learn_agent.saver = saver
 '''
 with tf.device('/gpu:%i'%(gpu_num)):
 	sess.run(tf.global_variables_initializer())
-	[sess.run(tf.assign(v, np.array([1.,1.]).astype(np.float32) ) ) for v in path_vector if 'h3' not in v.name]
-	[sess.run(tf.assign(v, np.array([0.,1.]).astype(np.float32) ) ) for v in path_vector if 'h3' in v.name]
+	# [sess.run(tf.assign(v, np.array([1.,1.]).astype(np.float32) ) ) for v in path_vector if 'h3' not in v.name]
+	# [sess.run(tf.assign(v, np.array([0.,1.]).astype(np.float32) ) ) for v in path_vector if 'h3' in v.name]
+	[sess.run(tf.assign(v, np.array([1.]).astype(np.float32) ) ) for v in path_vector if 'h3' in v.name]
+
 	saving_result = learn_agent.learn()
 
 
@@ -131,9 +136,9 @@ my_shelf.close()
 # dir_name = 'ppo_Data/dm_control/mtl/walker/multispeed/exp%i/'%(exp_num)
 # filename = dir_name+'walker-iter500.ckpt'
 # if 'wind' in dir_name:
-# 	learn_agent.env_contexts = [{'speed': 2., 'wind':s} for s in s_list]
+# 	learn_agent.env_contexts = [{'speed': 2., 'wind':s} for s in sw_list]
 # elif 'speed' in dir_name:
-# 	learn_agent.env_contexts = [{'speed': s, 'wind':0.} for s in s_list]
+# 	learn_agent.env_contexts = [{'speed': s, 'wind':0.} for s in sw_list]
 
 # saver.restore(sess, filename)
 # pms.train_flag = False

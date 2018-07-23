@@ -65,7 +65,7 @@ with tf.device('/gpu:%i'%(gpu_num)):
 	pms.env_name = 'walker'
 	pms.max_total_time_step = 1024 * 32
 
-	pms.batchsize = 4096 * 3
+	pms.batchsize = 4096
 
 	config = tf.ConfigProto(allow_soft_placement = True)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.1
